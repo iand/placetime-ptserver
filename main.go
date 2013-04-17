@@ -168,7 +168,7 @@ func imgHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func timelineHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseFiles("assets/html/timeline.html"))
+	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/timeline.html")))
 
 	err := templates.ExecuteTemplate(w, "timeline.html", nil)
 	if err != nil {
