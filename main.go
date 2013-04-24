@@ -178,17 +178,12 @@ func timelineHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func jsonTimelineHandler(w http.ResponseWriter, r *http.Request) {
-	sessionValid, sessionPid := checkSession(w, r, false)
+	sessionValid, _ := checkSession(w, r, false)
 	if !sessionValid {
 		return
 	}
 
 	pidParam := r.FormValue("pid")
-	if pidParam != sessionPid && !isAdmin(sessionPid) {
-		// TODO: allow admin to see all timelines?
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
 	statusParam := r.FormValue("status")
 
 	if statusParam != "m" {
