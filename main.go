@@ -80,7 +80,7 @@ func main() {
 	r.HandleFunc("/-jfollowing", jsonFollowingHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/-jfeeds", jsonFeedsHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/-jflaggedprofiles", jsonFlaggedProfilesHandler).Methods("GET", "HEAD")
-	//	r.HandleFunc("/{pid:[0-9a-zA-Z]+}", profileHandler).Methods("GET", "HEAD")
+	r.HandleFunc("/-jsearch", jsonSearchHandler).Methods("GET", "HEAD")
 
 	r.HandleFunc("/-tfollow", followHandler).Methods("POST")
 	r.HandleFunc("/-tunfollow", unfollowHandler).Methods("POST")
@@ -1016,6 +1016,33 @@ func jsonFeedsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json, err := json.MarshalIndent(flist, "", "  ")
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Write(json)
+
+}
+
+func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
+	sessionValid, _ := checkSession(w, r, false)
+	if !sessionValid {
+		return
+	}
+
+	srch := r.FormValue("s")
+
+	s := datastore.NewRedisStore()
+	defer s.Close()
+
+	plist, err := s.FindProfilesBySubstring(srch)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	json, err := json.MarshalIndent(plist, "", "  ")
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
