@@ -68,7 +68,7 @@ func main() {
 	r.HandleFunc("/", timelineHandler).Methods("GET", "HEAD")
 
 	r.HandleFunc("/timeline", timelineHandler).Methods("GET", "HEAD")
-	r.HandleFunc("/item/{id:[0-9]+}", itemHandler).Methods("GET", "HEAD")
+	r.HandleFunc("/item/{id:[0-9a-z]+}", itemHandler).Methods("GET", "HEAD")
 	//r.HandleFunc("/-init", initHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/-admin", adminHandler).Methods("GET", "HEAD")
 
@@ -183,8 +183,17 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	id := vars["id"]
-	_ = id
-	err := templates.ExecuteTemplate(w, "item.html", nil)
+
+	s := datastore.NewRedisStore()
+	defer s.Close()
+
+	item, err := s.Item(id)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	err = templates.ExecuteTemplate(w, "item.html", item)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
