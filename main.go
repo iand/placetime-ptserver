@@ -728,7 +728,7 @@ func remSuggestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func sessionHandler(w http.ResponseWriter, r *http.Request) {
-	pid := strings.ToLower(r.FormValue("pid"))
+	pid := r.FormValue("pid")
 	pwd := r.FormValue("pwd")
 
 	s := datastore.NewRedisStore()
