@@ -68,6 +68,7 @@ func main() {
 	r.HandleFunc("/", timelineHandler).Methods("GET", "HEAD")
 
 	r.HandleFunc("/timeline", timelineHandler).Methods("GET", "HEAD")
+	r.HandleFunc("/item/{id:[0-9]+}", itemHandler).Methods("GET", "HEAD")
 	//r.HandleFunc("/-init", initHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/-admin", adminHandler).Methods("GET", "HEAD")
 
@@ -171,6 +172,19 @@ func timelineHandler(w http.ResponseWriter, r *http.Request) {
 	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/timeline.html")))
 
 	err := templates.ExecuteTemplate(w, "timeline.html", nil)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+}
+
+func itemHandler(w http.ResponseWriter, r *http.Request) {
+	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/item.html")))
+
+	vars := mux.Vars(r)
+	id := vars["id"]
+	_ = id
+	err := templates.ExecuteTemplate(w, "item.html", nil)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
@@ -1033,14 +1047,7 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	srch := r.FormValue("s")
 
-	s := datastore.NewRedisStore()
-	defer s.Close()
-
-	plist, err := s.FindProfilesBySubstring(srch)
-	if err != nil {
-		ErrorResponse(w, r, err)
-		return
-	}
+	plist := MultiplexedSearch(srch)
 
 	json, err := json.MarshalIndent(plist, "", "  ")
 	if err != nil {
