@@ -65,7 +65,7 @@ func main() {
 	r.PathPrefix("/2003").HandlerFunc(vocabRedirectHandler).Methods("GET", "HEAD")
 	r.PathPrefix("/2008").HandlerFunc(vocabRedirectHandler).Methods("GET", "HEAD")
 
-	r.HandleFunc("/", timelineHandler).Methods("GET", "HEAD")
+	r.HandleFunc("/", homepageHandler).Methods("GET", "HEAD")
 
 	r.HandleFunc("/timeline", timelineHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/item/{id:[0-9a-z]+}", itemHandler).Methods("GET", "HEAD")
@@ -166,6 +166,16 @@ func imgHandler(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path[6:]
 	p = path.Join(imgDir, p)
 	http.ServeFile(w, r, p)
+}
+
+func homepageHandler(w http.ResponseWriter, r *http.Request) {
+	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/homepage.html")))
+
+	err := templates.ExecuteTemplate(w, "homepage.html", nil)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
 }
 
 func timelineHandler(w http.ResponseWriter, r *http.Request) {
