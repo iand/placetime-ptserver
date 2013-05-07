@@ -14,6 +14,7 @@ import (
 	"log"
 	mr "math/rand"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"path"
 	"path/filepath"
@@ -34,9 +35,15 @@ var (
 
 var ()
 
+// TODO: Look into https://github.com/PuerkitoBio/ghost
+
 func main() {
 	mr.Seed(time.Now().UTC().UnixNano())
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	flag.StringVar(&assetsDir, "assets", "./assets", "filesystem directory in which javascript/css/image assets are found")
 	flag.StringVar(&imgDir, "images", "/var/opt/timescroll/img", "filesystem directory to store fetched images")
