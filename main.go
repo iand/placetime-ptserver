@@ -608,7 +608,7 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	// }
 	// TODO: restrict to admins
 
-	templates := template.Must(template.ParseFiles("assets/html/admin.html"))
+	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/admin.html")))
 
 	err := templates.ExecuteTemplate(w, "admin.html", nil)
 	if err != nil {
