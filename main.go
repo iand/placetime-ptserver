@@ -29,6 +29,7 @@ var (
 	imgDir            = "/var/opt/timescroll/img"
 	templatesDir      = "./templates"
 	sessionCookieName = "ptsession"
+	newUserCookieName = "ptnewuser"
 	sessionExpiry     = 86400 * 14
 	doinit            = false
 )
@@ -989,6 +990,10 @@ func soauthHandler(w http.ResponseWriter, r *http.Request) {
 			ErrorResponse(w, r, err)
 			return
 		}
+
+		cookie := http.Cookie{Name: newUserCookieName, Value: "true", Path: "/", MaxAge: sessionExpiry}
+		http.SetCookie(w, &cookie)
+
 	}
 
 	createSession(screenName, w, r)
