@@ -224,6 +224,12 @@ func jsonTimelineHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, exists := r.Form["pid"]
+	if !exists {
+		ErrorResponse(w, r, errors.New("pid parameter is required"))
+		return
+	}
+
 	pidParam := r.FormValue("pid")
 	statusParam := r.FormValue("status")
 
@@ -869,16 +875,35 @@ func updateProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.ParseForm()
+
+	_, exists := r.Form["pid"]
+	if !exists {
+		ErrorResponse(w, r, errors.New("pid parameter is required"))
+		return
+	}
+
 	pid := r.FormValue("pid")
-	name := r.FormValue("pname")
-	feedurl := r.FormValue("feedurl")
-	bio := r.FormValue("bio")
-	parentpid := r.FormValue("parentpid")
+
+	values := make(map[string]string, 0)
+
+	for _, p := range datastore.ProfileProperties {
+		if _, exists := r.Form[p]; exists {
+			values[p] = r.FormValue(p)
+		}
+
+	}
+
+	// name := r.FormValue("pname")
+	// feedurl := r.FormValue("feedurl")
+	// bio := r.FormValue("bio")
+	// // email := r.FormValue("email")
+	// parentpid := r.FormValue("parentpid")
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	err := s.UpdateProfile(pid, name, bio, feedurl, parentpid)
+	err := s.UpdateProfile(pid, values)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
