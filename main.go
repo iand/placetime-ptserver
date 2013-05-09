@@ -224,6 +224,7 @@ func jsonTimelineHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.ParseForm()
 	_, exists := r.Form["pid"]
 	if !exists {
 		ErrorResponse(w, r, errors.New("pid parameter is required"))
