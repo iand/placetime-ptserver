@@ -12,20 +12,24 @@ import (
 	"time"
 )
 
+type SearchResults struct {
+	Results interface{} `json:"results"`
+}
+
 type ProfileSearchResults []*datastore.Profile
 
 type ItemSearchResults []*datastore.Item
 
-func ProfileSearch(srch string) ProfileSearchResults {
+func ProfileSearch(srch string) SearchResults {
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
 	plist, _ := s.FindProfilesBySubstring(srch)
 
-	return plist
+	return SearchResults{Results: plist}
 }
 
-func MultiplexedSearch(srch string) ItemSearchResults {
+func MultiplexedSearch(srch string) SearchResults {
 	results := make(ItemSearchResults, 0)
 
 	items := make(chan ItemSearchResults)
@@ -43,7 +47,7 @@ func MultiplexedSearch(srch string) ItemSearchResults {
 		}
 	}
 
-	return results
+	return SearchResults{Results: results}
 
 }
 
