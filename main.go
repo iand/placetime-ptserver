@@ -1,6 +1,5 @@
 package main
 
-
 import (
 	"code.google.com/p/gorilla/mux"
 	"crypto/rand"
@@ -514,17 +513,22 @@ func initData() {
 	// }
 
 	log.Print("Adding profile for iand")
-	s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "")
+	err := s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "", "nospam@iandavis.com")
+	if err != nil {
+		log.Printf("Could not add profile for @iand: %s", err.Error())
+	}
 
 	log.Print("Adding profile for daveg")
-	s.AddProfile("@daveg", "sunshine", "Dave", "", "", "")
-
+	err = s.AddProfile("@daveg", "sunshine", "Dave", "", "", "", "")
+	if err != nil {
+		log.Printf("Could not add profile for @daveg: %s", err.Error())
+	}
 	s.AddSuggestedProfile("iand", "london")
 
 	//s.Follow("iand", "nasa")
 
 	log.Print("Adding profile for nasa")
-	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "")
+	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "")
 
 	log.Print("Adding items for nasa")
 	s.AddItem("@nasa", parseKnownTime("1 Jan 2015"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "")
@@ -539,7 +543,7 @@ func initData() {
 	s.AddItem("@nasa", parseKnownTime("1 Jan 2014"), "Mars Sample Return Mission - Launch of NASA sample return mission to Mars", "", "", "")
 	s.AddItem("@nasa", parseKnownTime("5 Apr 2231"), "Pluto - is passed by Neptune in distance from the Sun for the next 20 years", "", "", "")
 
-	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "")
+	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "")
 	//http: //www.ents24.com/web/festival-tickets/T-In-The-Park-2013-2998409.html
 
 	// s.SetProfile(&Profile{Pid: "o2shepherdsbushempire ", Name: "O2 Shepherd's Bush Empire Events", Bio: "", Feed: "http://www.o2shepherdsbushempire.co.uk/RSS"})
@@ -558,21 +562,35 @@ func initData() {
 	// s.AddProfile("wellcomecollection", "sunshine", "Free events in London - Wellcome Collection", "", "http://www.wellcomecollection.org/feeds/events.aspx", "")
 	// s.AddProfile("indymedia", "sunshine", "Indymedia London | Events | Index", "", "http://london.indymedia.org/events.rss", "")
 
-	log.Print("Adding profile for visitlondon")
-	s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "")
+	log.Print("Adding profile for @visitlondon")
+	err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "")
+	if err != nil {
+		log.Printf("Could not add profile for @visitlondon: %s", err.Error())
+	}
 
 	log.Print("Adding feed profile for londonsportsguide")
-	s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon")
+	err = s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon", "")
+	if err != nil {
+		log.Printf("Could not add profile for londonsportsguide: %s", err.Error())
+	}
 
 	log.Print("Adding feed profile for londonartsguide")
-	s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon")
+	err = s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon", "")
+	if err != nil {
+		log.Printf("Could not add profile for londonartsguide: %s", err.Error())
+	}
 
 	log.Print("Adding feed profile for londondanceguide")
-	s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon")
+	err = s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon", "")
+	if err != nil {
+		log.Printf("Could not add profile for londondanceguide: %s", err.Error())
+	}
 
 	log.Print("Adding feed profile for o2shepherdsbushempire")
-	s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", "http://www.o2shepherdsbushempire.co.uk/RSS", "")
-
+	err = s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", "http://www.o2shepherdsbushempire.co.uk/RSS", "", "")
+	if err != nil {
+		log.Printf("Could not add profile for o2shepherdsbushempire: %s", err.Error())
+	}
 	// s.AddProfile("naturelondonscience", "sunshine", "London Blog: Science Events In London This Week : London Blog", "", "http://blogs.nature.com/london/feed", "")
 	// s.AddProfile("lcf", "sunshine", "London College of Fashion - News &amp; Events", "", "http://newsevents.arts.ac.uk/lcf/news/feed/arts/", "")
 	// s.AddProfile("frenchcinemalondon", "sunshine", "London events | French Cinema London", "", "http://www.frenchcinemalondon.com/?feed=rss2", "")
@@ -593,7 +611,7 @@ func initData() {
 	// s.AddProfile("jewishmuseum", "sunshine", "What's on - The Jewish Museum London", "", "http://www.jewishmuseum.org.uk/rss", "")
 	// s.AddProfile("architecture", "sunshine", "What's on? - Royal Institute of British Architects", "", "http://www.architecture.com/syndication.riba?feed_type=Events", "")
 
-	log.Print("Adding follows for iand")
+	log.Print("Adding follows for @iand")
 	s.Follow("@iand", "londonsportsguide")
 	s.Follow("@iand", "londonartsguide")
 	s.Follow("@iand", "londondanceguide")
@@ -639,7 +657,6 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	if !sessionValid {
 		return
 	}
-	// TODO: restrict to admins
 
 	pid := r.FormValue("pid")
 	text := r.FormValue("text")
@@ -845,6 +862,7 @@ func addProfileHandler(w http.ResponseWriter, r *http.Request) {
 	feedurl := r.FormValue("feedurl")
 	bio := r.FormValue("bio")
 	parentpid := r.FormValue("parentpid")
+	email := r.FormValue("email")
 
 	var err error
 	if pwd == "" {
@@ -859,7 +877,7 @@ func addProfileHandler(w http.ResponseWriter, r *http.Request) {
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	err = s.AddProfile(pid, pwd, name, bio, feedurl, parentpid)
+	err = s.AddProfile(pid, pwd, name, bio, feedurl, parentpid, email)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
@@ -1012,7 +1030,7 @@ func soauthHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = s.AddProfile(screenName, pwd, screenName, "", "", "")
+		err = s.AddProfile(screenName, pwd, screenName, "", "", "", "")
 		if err != nil {
 			ErrorResponse(w, r, err)
 			return
