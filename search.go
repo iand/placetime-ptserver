@@ -12,29 +12,31 @@ import (
 	"time"
 )
 
-type SearchResults struct {
-	Profiles []*datastore.Profile `json:"profiles"`
-	Items    []*datastore.Item    `json:"items"`
+type ProfileSearchResults []*datastore.Profile
+
+type ItemSearchResults []*datastore.Item
+
+func ProfileSearch(srch string) ProfileSearchResults {
+	s := datastore.NewRedisStore()
+	defer s.Close()
+
+	plist, _ := s.FindProfilesBySubstring(srch)
+
+	return plist
 }
 
-func MultiplexedSearch(srch string) SearchResults {
-	results := SearchResults{}
-	results.Profiles = make([]*datastore.Profile, 0)
-	results.Items = make([]*datastore.Item, 0)
+func MultiplexedSearch(srch string) ItemSearchResults {
+	results := make(ItemSearchResults, 0)
 
-	profiles := make(chan []*datastore.Profile)
-	items := make(chan []*datastore.Item)
+	items := make(chan ItemSearchResults)
 
-	go func() { profiles <- searchProfiles(srch) }()
 	go func() { items <- searchYoutubeVidoes(srch) }()
 
 	timeout := time.After(5000 * time.Millisecond)
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 1; i++ {
 		select {
-		case result := <-profiles:
-			results.Profiles = append(results.Profiles, result...)
 		case result := <-items:
-			results.Items = append(results.Items, result...)
+			results = append(results, result...)
 		case <-timeout:
 			log.Println("Search timed out")
 			break
@@ -45,16 +47,7 @@ func MultiplexedSearch(srch string) SearchResults {
 
 }
 
-func searchProfiles(srch string) []*datastore.Profile {
-	s := datastore.NewRedisStore()
-	defer s.Close()
-
-	plist, _ := s.FindProfilesBySubstring(srch)
-
-	return plist
-}
-
-func searchYoutubeChannels(srch string) []*datastore.Profile {
+func searchYoutubeChannels(srch string) ProfileSearchResults {
 	plist := make([]*datastore.Profile, 0)
 
 	url := fmt.Sprintf("https://gdata.youtube.com/feeds/api/channels?q=%s&v=2", srch)
@@ -88,7 +81,7 @@ func searchYoutubeChannels(srch string) []*datastore.Profile {
 
 }
 
-func searchYoutubeVidoes(srch string) []*datastore.Item {
+func searchYoutubeVidoes(srch string) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
 	url := fmt.Sprintf("https://gdata.youtube.com/feeds/api/videos?v=2&q=%s", url.QueryEscape(srch))

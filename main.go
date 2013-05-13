@@ -1121,11 +1121,19 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var result interface{}
+
 	srch := r.FormValue("s")
+	stype := r.FormValue("t")
 
-	plist := MultiplexedSearch(srch)
+	if stype == "p" {
+		result = ProfileSearch(srch)
+	} else {
 
-	json, err := json.MarshalIndent(plist, "", "  ")
+		result = MultiplexedSearch(srch)
+	}
+
+	json, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
