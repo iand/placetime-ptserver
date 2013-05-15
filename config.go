@@ -43,6 +43,9 @@ var (
 				Cookie:   "ptsession",
 			},
 		},
+		Image: ImageConfig{
+			Path: "/var/opt/timescroll/img",
+		},
 		Datastore: datastore.DefaultConfig,
 	}
 )

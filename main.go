@@ -42,16 +42,12 @@ func main() {
 	}()
 
 	readConfig()
-
 	checkEnvironment()
+
+	datastore.InitRedisStore(config.Datastore)
 
 	log.Printf("Assets directory: %s", config.Web.Path)
 	log.Printf("Image directory: %s", config.Image.Path)
-
-	log.Printf("Profile datastore: %s/%d", config.Datastore.Profile.Address, config.Datastore.Profile.Database)
-	log.Printf("Timeline datastore: %s/%d", config.Datastore.Timeline.Address, config.Datastore.Timeline.Database)
-	log.Printf("Item datastore: %s/%d", config.Datastore.Item.Address, config.Datastore.Item.Database)
-	log.Printf("Session datastore: %s/%d", config.Datastore.Session.Address, config.Datastore.Session.Database)
 
 	if doinit {
 		initData()
