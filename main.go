@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"github.com/placetime/datastore"
 	"html/template"
@@ -25,18 +24,14 @@ import (
 )
 
 var (
-	assetsDir         = "./assets"
-	imgDir            = "/var/opt/timescroll/img"
+	config            Config
 	templatesDir      = "./templates"
-	sessionCookieName = "ptsession"
 	newUserCookieName = "ptnewuser"
-	sessionExpiry     = 86400 * 14
 	doinit            = false
 )
 
-var ()
-
 // TODO: Look into https://github.com/PuerkitoBio/ghost
+// TODO: https://github.com/craigmj/gototp
 
 func main() {
 	mr.Seed(time.Now().UTC().UnixNano())
@@ -46,16 +41,17 @@ func main() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
-	flag.StringVar(&assetsDir, "assets", "./assets", "filesystem directory in which javascript/css/image assets are found")
-	flag.StringVar(&imgDir, "images", "/var/opt/timescroll/img", "filesystem directory to store fetched images")
-	flag.IntVar(&sessionExpiry, "session", 86400*14, "number of seconds session cookies should be valid for")
-	flag.BoolVar(&doinit, "init", false, "re-initialize database (warning: will wipe eveything)")
-	flag.Parse()
+	readConfig()
 
 	checkEnvironment()
-	log.Printf("Assets directory: %s", assetsDir)
-	log.Printf("Image directory: %s", imgDir)
-	log.Printf("Session expiry: %d", sessionExpiry)
+
+	log.Printf("Assets directory: %s", config.Web.Path)
+	log.Printf("Image directory: %s", config.Image.Path)
+
+	log.Printf("Profile datastore: %s/%d", config.Datastore.Profile.Address, config.Datastore.Profile.Database)
+	log.Printf("Timeline datastore: %s/%d", config.Datastore.Timeline.Address, config.Datastore.Timeline.Database)
+	log.Printf("Item datastore: %s/%d", config.Datastore.Item.Address, config.Datastore.Item.Database)
+	log.Printf("Session datastore: %s/%d", config.Datastore.Session.Address, config.Datastore.Session.Database)
 
 	if doinit {
 		initData()
@@ -112,35 +108,15 @@ func main() {
 	r.PathPrefix("/-assets/").HandlerFunc(assetsHandler).Methods("GET", "HEAD")
 	r.PathPrefix("/-img/").HandlerFunc(imgHandler).Methods("GET", "HEAD")
 
-	log.Print("Listening on 0.0.0.0:8081\n")
+	log.Printf("Listening on %s\n", config.Web.Address)
 
 	server := &http.Server{
-		Addr:        "0.0.0.0:8081",
+		Addr:        config.Web.Address,
 		Handler:     Log(r),
 		ReadTimeout: 30 * time.Second,
 	}
 
 	server.ListenAndServe()
-}
-
-func checkEnvironment() {
-	f, err := os.Open(imgDir)
-	if err != nil {
-		log.Printf("Could not open image path %s: %s", imgDir, err.Error())
-		os.Exit(1)
-	}
-	defer f.Close()
-	fi, err := f.Stat()
-	if err != nil {
-		log.Printf("Could not stat image path %s: %s", imgDir, err.Error())
-		os.Exit(1)
-	}
-
-	if !fi.IsDir() {
-		log.Printf("Image path is not a directory %s: %s", imgDir, err.Error())
-		os.Exit(1)
-	}
-
 }
 
 func Hostname() string {
@@ -165,19 +141,19 @@ func ErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
 
 func assetsHandler(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path[9:]
-	p = path.Join(assetsDir, p)
+	p = path.Join(config.Web.Path, p)
 	http.ServeFile(w, r, p)
 	// w.Write([]byte(p))
 }
 
 func imgHandler(w http.ResponseWriter, r *http.Request) {
 	p := r.URL.Path[6:]
-	p = path.Join(imgDir, p)
+	p = path.Join(config.Image.Path, p)
 	http.ServeFile(w, r, p)
 }
 
 func homepageHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/homepage.html")))
+	templates := template.Must(template.ParseFiles(path.Join(config.Web.Path, "html/homepage.html")))
 
 	err := templates.ExecuteTemplate(w, "homepage.html", nil)
 	if err != nil {
@@ -187,7 +163,7 @@ func homepageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func timelineHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/timeline.html")))
+	templates := template.Must(template.ParseFiles(path.Join(config.Web.Path, "html/timeline.html")))
 
 	err := templates.ExecuteTemplate(w, "timeline.html", nil)
 	if err != nil {
@@ -197,7 +173,7 @@ func timelineHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func itemHandler(w http.ResponseWriter, r *http.Request) {
-	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/item.html")))
+	templates := template.Must(template.ParseFiles(path.Join(config.Web.Path, "html/item.html")))
 
 	vars := mux.Vars(r)
 	id := vars["id"]
@@ -641,8 +617,16 @@ func adminHandler(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 	// TODO: restrict to admins
+	sessionValid, sessionPid := checkSession(w, r, false)
+	if !sessionValid {
+		return
+	}
+	if !isAdmin(sessionPid) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
 
-	templates := template.Must(template.ParseFiles(path.Join(assetsDir, "html/admin.html")))
+	templates := template.Must(template.ParseFiles(path.Join(config.Web.Path, "html/admin.html")))
 
 	err := templates.ExecuteTemplate(w, "admin.html", nil)
 	if err != nil {
@@ -791,7 +775,7 @@ func checkSession(w http.ResponseWriter, r *http.Request, silent bool) (bool, st
 	var pid string
 	valid := false
 
-	cookie, err := r.Cookie(sessionCookieName)
+	cookie, err := r.Cookie(config.Web.Session.Cookie)
 	if err == nil {
 		parts := strings.Split(cookie.Value, "|")
 		if len(parts) == 2 {
@@ -816,7 +800,7 @@ func checkSession(w http.ResponseWriter, r *http.Request, silent bool) (bool, st
 
 					value := fmt.Sprintf("%s|%d", pid, newSessionId)
 
-					cookie := http.Cookie{Name: sessionCookieName, Value: value, Path: "/", MaxAge: sessionExpiry}
+					cookie := http.Cookie{Name: config.Web.Session.Cookie, Value: value, Path: "/", MaxAge: config.Web.Session.Duration}
 					http.SetCookie(w, &cookie)
 				}
 
@@ -843,7 +827,7 @@ func createSession(pid string, w http.ResponseWriter, r *http.Request) {
 
 	value := fmt.Sprintf("%s|%d", pid, sessionId)
 
-	cookie := http.Cookie{Name: sessionCookieName, Value: value, Path: "/", MaxAge: 86400}
+	cookie := http.Cookie{Name: config.Web.Session.Cookie, Value: value, Path: "/", MaxAge: 86400}
 	http.SetCookie(w, &cookie)
 
 }
@@ -1036,7 +1020,7 @@ func soauthHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		cookie := http.Cookie{Name: newUserCookieName, Value: "true", Path: "/", MaxAge: sessionExpiry}
+		cookie := http.Cookie{Name: newUserCookieName, Value: "true", Path: "/", MaxAge: config.Web.Session.Duration}
 		http.SetCookie(w, &cookie)
 
 	}
@@ -1144,9 +1128,10 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func isAdmin(pid string) bool {
-	// TODO look up in database
-	if pid == "iand" || pid == "daveg" {
-		return true
+	for _, v := range config.Web.Admins {
+		if v == pid {
+			return true
+		}
 	}
 
 	return false
