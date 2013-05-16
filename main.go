@@ -502,6 +502,8 @@ func initData() {
 	log.Print("Adding profile for nasa")
 	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "")
 
+	// s.Follow("@iand", "@nasa")
+
 	log.Print("Adding items for nasa")
 	s.AddItem("@nasa", parseKnownTime("1 Jan 2015"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "")
 	s.AddItem("@nasa", parseKnownTime("26 Aug 2012"), "Dawn - Leaves asteroid Vesta, heads for asteroid 1 Ceres", "", "", "")
@@ -591,18 +593,19 @@ func initData() {
 	s.Follow("@iand", "@nasa")
 	s.Follow("@iand", "@daveg")
 
-	log.Print("Adding follows for daveg")
-	s.Follow("@daveg", "londonsportsguide")
-	s.Follow("@daveg", "londonartsguide")
-	s.Follow("@daveg", "londondanceguide")
-	s.Follow("@daveg", "o2shepherdsbushempire")
-	s.Follow("@daveg", "@nasa")
+	log.Print("Adding follows for @daveg")
+	// s.Follow("@daveg", "londonsportsguide")
+	// s.Follow("@daveg", "londonartsguide")
+	// s.Follow("@daveg", "londondanceguide")
+	// s.Follow("@daveg", "o2shepherdsbushempire")
+	// s.Follow("@daveg", "@nasa")
 	s.Follow("@daveg", "@iand")
 
 	log.Print("Initialisation complete")
 
 }
 
+// Redirects for content that used to be on this domain
 func vocabRedirectHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "http://vocab.org/placetime"+r.URL.Path, http.StatusMovedPermanently)
 }
