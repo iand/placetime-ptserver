@@ -1099,7 +1099,7 @@ func jsonFeedsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
-	sessionValid, _ := checkSession(w, r, false)
+	sessionValid, pid := checkSession(w, r, false)
 	if !sessionValid {
 		return
 	}
@@ -1112,7 +1112,7 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 	if stype == "p" {
 		result = ProfileSearch(srch)
 	} else {
-		result = MultiplexedSearch(srch)
+		result = MultiplexedSearch(srch, pid)
 		if items, ok := result.Results.(ItemSearchResults); ok {
 			s := datastore.NewRedisStore()
 			defer s.Close()

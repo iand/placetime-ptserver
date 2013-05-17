@@ -1,12 +1,12 @@
 package main
 
 import (
+	"cgl.tideland.biz/applog"
 	"crypto/md5"
 	"fmt"
 	"github.com/iand/feedparser"
 	"github.com/placetime/datastore"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -29,36 +29,58 @@ func ProfileSearch(srch string) SearchResults {
 	return SearchResults{Results: plist}
 }
 
-func MultiplexedSearch(srch string) SearchResults {
+func MultiplexedSearch(srch string, pid string) SearchResults {
 	results := make(ItemSearchResults, 0)
 
 	items := make(chan ItemSearchResults)
 
-	go func() { items <- searchYoutubeVidoes(srch) }()
+	searches := []func(){
+		func() { items <- searchYoutubeVidoes(srch, pid) },
+		func() { items <- searchEventfulEvents(srch, pid) },
+	}
 
-	timeout := time.After(5000 * time.Millisecond)
-	for i := 0; i < 1; i++ {
+	for _, f := range searches {
+		go f()
+	}
+
+	lists := make([]ItemSearchResults, 0)
+
+	timeout := time.After(time.Duration(config.Search.Timeout) * time.Millisecond)
+	for i := 0; i < len(searches); i++ {
 		select {
 		case result := <-items:
-			results = append(results, result...)
+			lists = append(lists, result)
 		case <-timeout:
-			log.Println("Search timed out")
+			applog.Debugf("Search timed out")
 			break
 		}
+	}
+
+	i := 0
+	added := true
+	for added {
+		added = false
+		for _, list := range lists {
+			if i < len(list) {
+				results = append(results, list[i])
+				added = true
+			}
+		}
+		i++
 	}
 
 	return SearchResults{Results: results}
 
 }
 
-func searchYoutubeChannels(srch string) ProfileSearchResults {
+func searchYoutubeChannels(srch string, pid string) ProfileSearchResults {
 	plist := make([]*datastore.Profile, 0)
 
 	url := fmt.Sprintf("https://gdata.youtube.com/feeds/api/channels?q=%s&v=2", srch)
 	resp, err := http.Get(url)
 
 	if err != nil {
-		log.Printf("Fetch of feed got http error  %s", err.Error())
+		applog.Errorf("Fetch of feed got http error  %s", err.Error())
 		return plist
 	}
 
@@ -67,7 +89,7 @@ func searchYoutubeChannels(srch string) ProfileSearchResults {
 	feed, err := feedparser.NewFeed(resp.Body)
 
 	if err != nil {
-		log.Printf("Fetch of feed got http error  %s", err.Error())
+		applog.Errorf("Fetch of feed got http error  %s", err.Error())
 		return plist
 
 	}
@@ -85,27 +107,26 @@ func searchYoutubeChannels(srch string) ProfileSearchResults {
 
 }
 
-func searchYoutubeVidoes(srch string) ItemSearchResults {
+func searchYoutubeVidoes(srch string, pid string) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
 	url := fmt.Sprintf("https://gdata.youtube.com/feeds/api/videos?v=2&q=%s", url.QueryEscape(srch))
 
-	log.Printf("Fetching %s", url)
+	applog.Debugf("Fetching %s", url)
 
 	resp, err := http.Get(url)
 
 	if err != nil {
-		log.Printf("Fetch of feed got http error  %s", err.Error())
+		applog.Errorf("Fetch of feed got http error  %s", err.Error())
 		return items
 	}
 
 	defer resp.Body.Close()
-	log.Printf("Response %s", resp.Status)
 
 	feed, err := feedparser.NewFeed(resp.Body)
 
 	if err != nil {
-		log.Printf("Fetch of feed got http error  %s", err.Error())
+		applog.Errorf("Fetch of feed got http error  %s", err.Error())
 		return items
 
 	}
@@ -115,7 +136,45 @@ func searchYoutubeVidoes(srch string) ItemSearchResults {
 			hasher := md5.New()
 			io.WriteString(hasher, item.Id)
 			id := fmt.Sprintf("%x", hasher.Sum(nil))
-			items = append(items, &datastore.Item{Id: id, Pid: "youtube", Event: 0, Text: item.Title, Link: item.Link, Media: "video", Image: item.Image})
+			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: item.Title, Link: item.Link, Media: "video", Image: item.Image})
+		}
+	}
+	return items
+
+}
+
+func searchEventfulEvents(srch string, pid string) ItemSearchResults {
+	items := make([]*datastore.Item, 0)
+
+	url := fmt.Sprintf("http://api.eventful.com/rest/events/rss?app_key=%s&date=Future&keywords=%s", url.QueryEscape(config.Search.Eventful.AppKey), url.QueryEscape(srch))
+
+	applog.Debugf("Fetching %s", url)
+
+	resp, err := http.Get(url)
+
+	if err != nil {
+		applog.Errorf("Fetch of feed got http error  %s", err.Error())
+		return items
+	}
+
+	defer resp.Body.Close()
+	applog.Debugf("Response %s", resp.Status)
+
+	feed, err := feedparser.NewFeed(resp.Body)
+
+	if err != nil {
+		applog.Errorf("Fetch of feed got http error  %s", err.Error())
+		return items
+
+	}
+
+	if feed != nil {
+		applog.Debugf("Received %d items from eventful matching %s", len(feed.Items), srch)
+		for _, item := range feed.Items {
+			hasher := md5.New()
+			io.WriteString(hasher, item.Id)
+			id := fmt.Sprintf("%x", hasher.Sum(nil))
+			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: item.When.Unix(), Text: item.Title, Link: item.Link, Media: "text", Image: item.Image})
 		}
 	}
 	return items

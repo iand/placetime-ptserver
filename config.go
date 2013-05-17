@@ -34,7 +34,13 @@ type ImageConfig struct {
 }
 
 type SearchConfig struct {
-	Lifetime int `toml:"lifetime"`
+	Lifetime int            `toml:"lifetime"`
+	Timeout  int            `toml:"timeout"`
+	Eventful EventfulConfig `toml:"eventful"`
+}
+
+type EventfulConfig struct {
+	AppKey string `toml:"appkey"`
 }
 
 var (
@@ -54,6 +60,10 @@ var (
 		Datastore: datastore.DefaultConfig,
 		Search: SearchConfig{
 			Lifetime: 600,
+			Timeout:  15000,
+			Eventful: EventfulConfig{
+				AppKey: "h6xD8gZFzDK5m498",
+			},
 		},
 	}
 )
