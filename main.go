@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cgl.tideland.biz/applog"
 	"code.google.com/p/gorilla/mux"
 	"crypto/rand"
 	"encoding/base64"
@@ -10,7 +11,7 @@ import (
 	"github.com/placetime/datastore"
 	"html/template"
 	"io/ioutil"
-	"log"
+
 	mr "math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -38,7 +39,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
+		http.ListenAndServe("localhost:6060", nil)
 	}()
 
 	readConfig()
@@ -46,8 +47,8 @@ func main() {
 
 	datastore.InitRedisStore(config.Datastore)
 
-	log.Printf("Assets directory: %s", config.Web.Path)
-	log.Printf("Image directory: %s", config.Image.Path)
+	applog.Infof("Assets directory: %s", config.Web.Path)
+	applog.Infof("Image directory: %s", config.Image.Path)
 
 	if doinit {
 		initData()
@@ -104,7 +105,7 @@ func main() {
 	r.PathPrefix("/-assets/").HandlerFunc(assetsHandler).Methods("GET", "HEAD")
 	r.PathPrefix("/-img/").HandlerFunc(imgHandler).Methods("GET", "HEAD")
 
-	log.Printf("Listening on %s\n", config.Web.Address)
+	applog.Infof("Listening on %s\n", config.Web.Address)
 
 	server := &http.Server{
 		Addr:        config.Web.Address,
@@ -125,13 +126,13 @@ func Hostname() string {
 
 func Log(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("%s %s %s", r.RemoteAddr, r.Method, r.URL)
+		applog.Infof("%s %s %s", r.RemoteAddr, r.Method, r.URL)
 		handler.ServeHTTP(w, r)
 	})
 }
 
 func ErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
-	log.Printf("[Error] %s (%s)", err.Error(), r.URL)
+	applog.Errorf("%s (%s)", err.Error(), r.URL)
 	http.Error(w, err.Error(), http.StatusInternalServerError)
 }
 
@@ -452,7 +453,7 @@ func initData() {
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	log.Print("Resetting database")
+	applog.Infof("Resetting database")
 	s.ResetAll()
 
 	// s.AddProfile("ukfestivals", "sunshine", "UK Festivals", "Every musical festival in the UK.", "", "")
@@ -484,27 +485,27 @@ func initData() {
 	// 	s.AddItem("testdata", date.Format("02 Jan 2006"), fmt.Sprintf("Test data, item number %d", i), fmt.Sprintf("http://example.com/%d", i)))
 	// }
 
-	log.Print("Adding profile for iand")
+	applog.Infof("Adding profile for iand")
 	err := s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "", "nospam@iandavis.com")
 	if err != nil {
-		log.Printf("Could not add profile for @iand: %s", err.Error())
+		applog.Errorf("Could not add profile for @iand: %s", err.Error())
 	}
 
-	log.Print("Adding profile for daveg")
+	applog.Infof("Adding profile for daveg")
 	err = s.AddProfile("@daveg", "sunshine", "Dave", "", "", "", "")
 	if err != nil {
-		log.Printf("Could not add profile for @daveg: %s", err.Error())
+		applog.Errorf("Could not add profile for @daveg: %s", err.Error())
 	}
 	s.AddSuggestedProfile("iand", "london")
 
 	//s.Follow("iand", "nasa")
 
-	log.Print("Adding profile for nasa")
+	applog.Infof("Adding profile for nasa")
 	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "")
 
 	// s.Follow("@iand", "@nasa")
 
-	log.Print("Adding items for nasa")
+	applog.Infof("Adding items for nasa")
 	s.AddItem("@nasa", parseKnownTime("1 Jan 2015"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "")
 	s.AddItem("@nasa", parseKnownTime("26 Aug 2012"), "Dawn - Leaves asteroid Vesta, heads for asteroid 1 Ceres", "", "", "")
 	s.AddItem("@nasa", parseKnownTime("1 Sep 2012"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "")
@@ -536,34 +537,34 @@ func initData() {
 	// s.AddProfile("wellcomecollection", "sunshine", "Free events in London - Wellcome Collection", "", "http://www.wellcomecollection.org/feeds/events.aspx", "")
 	// s.AddProfile("indymedia", "sunshine", "Indymedia London | Events | Index", "", "http://london.indymedia.org/events.rss", "")
 
-	log.Print("Adding profile for @visitlondon")
+	applog.Infof("Adding profile for @visitlondon")
 	err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "")
 	if err != nil {
-		log.Printf("Could not add profile for @visitlondon: %s", err.Error())
+		applog.Errorf("Could not add profile for @visitlondon: %s", err.Error())
 	}
 
-	log.Print("Adding feed profile for londonsportsguide")
+	applog.Infof("Adding feed profile for londonsportsguide")
 	err = s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon", "")
 	if err != nil {
-		log.Printf("Could not add profile for londonsportsguide: %s", err.Error())
+		applog.Errorf("Could not add profile for londonsportsguide: %s", err.Error())
 	}
 
-	log.Print("Adding feed profile for londonartsguide")
+	applog.Infof("Adding feed profile for londonartsguide")
 	err = s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon", "")
 	if err != nil {
-		log.Printf("Could not add profile for londonartsguide: %s", err.Error())
+		applog.Errorf("Could not add profile for londonartsguide: %s", err.Error())
 	}
 
-	log.Print("Adding feed profile for londondanceguide")
+	applog.Infof("Adding feed profile for londondanceguide")
 	err = s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon", "")
 	if err != nil {
-		log.Printf("Could not add profile for londondanceguide: %s", err.Error())
+		applog.Errorf("Could not add profile for londondanceguide: %s", err.Error())
 	}
 
-	log.Print("Adding feed profile for o2shepherdsbushempire")
+	applog.Infof("Adding feed profile for o2shepherdsbushempire")
 	err = s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", "http://www.o2shepherdsbushempire.co.uk/RSS", "", "")
 	if err != nil {
-		log.Printf("Could not add profile for o2shepherdsbushempire: %s", err.Error())
+		applog.Errorf("Could not add profile for o2shepherdsbushempire: %s", err.Error())
 	}
 	// s.AddProfile("naturelondonscience", "sunshine", "London Blog: Science Events In London This Week : London Blog", "", "http://blogs.nature.com/london/feed", "")
 	// s.AddProfile("lcf", "sunshine", "London College of Fashion - News &amp; Events", "", "http://newsevents.arts.ac.uk/lcf/news/feed/arts/", "")
@@ -585,7 +586,7 @@ func initData() {
 	// s.AddProfile("jewishmuseum", "sunshine", "What's on - The Jewish Museum London", "", "http://www.jewishmuseum.org.uk/rss", "")
 	// s.AddProfile("architecture", "sunshine", "What's on? - Royal Institute of British Architects", "", "http://www.architecture.com/syndication.riba?feed_type=Events", "")
 
-	log.Print("Adding follows for @iand")
+	applog.Infof("Adding follows for @iand")
 	s.Follow("@iand", "londonsportsguide")
 	s.Follow("@iand", "londonartsguide")
 	s.Follow("@iand", "londondanceguide")
@@ -593,7 +594,7 @@ func initData() {
 	s.Follow("@iand", "@nasa")
 	s.Follow("@iand", "@daveg")
 
-	log.Print("Adding follows for @daveg")
+	applog.Infof("Adding follows for @daveg")
 	// s.Follow("@daveg", "londonsportsguide")
 	// s.Follow("@daveg", "londonartsguide")
 	// s.Follow("@daveg", "londondanceguide")
@@ -601,7 +602,7 @@ func initData() {
 	// s.Follow("@daveg", "@nasa")
 	s.Follow("@daveg", "@iand")
 
-	log.Print("Initialisation complete")
+	applog.Infof("Initialisation complete")
 
 }
 
@@ -851,7 +852,7 @@ func addProfileHandler(w http.ResponseWriter, r *http.Request) {
 	if pwd == "" {
 		pwd, err = RandomString(18)
 		if err != nil {
-			log.Printf("Could not generate password: %s", err.Error())
+			applog.Errorf("Could not generate password: %s", err.Error())
 			ErrorResponse(w, r, err)
 			return
 		}
@@ -965,9 +966,11 @@ func twitterHandler(w http.ResponseWriter, r *http.Request) {
 	callback := fmt.Sprintf("http://%s/-soauth", Hostname())
 
 	token, tokenSecret, callbackConfirmed, err := GetTwitterRequestToken(callback)
-	log.Printf("token: %s\n", token)
-	log.Printf("tokenSecret: %s\n", tokenSecret)
-	log.Printf("callbackConfirmed: %s\n", callbackConfirmed)
+	_ = tokenSecret
+	_ = callbackConfirmed
+	// applog.Debugf("token: %s\n", token)
+	// applog.Debugf("tokenSecret: %s\n", tokenSecret)
+	// applog.Debugf("callbackConfirmed: %s\n", callbackConfirmed)
 
 	if err != nil {
 		ErrorResponse(w, r, err)
@@ -980,15 +983,17 @@ func twitterHandler(w http.ResponseWriter, r *http.Request) {
 func soauthHandler(w http.ResponseWriter, r *http.Request) {
 	oauth_token := r.FormValue("oauth_token")
 	oauth_verifier := r.FormValue("oauth_verifier")
-	log.Printf("oauth_token: %s\n", oauth_token)
-	log.Printf("oauth_verifier: %s\n", oauth_verifier)
+	// applog.Debugf("oauth_token: %s\n", oauth_token)
+	// applog.Debugf("oauth_verifier: %s\n", oauth_verifier)
 
 	token, tokenSecret, userid, screenName, err := GetTwitterAccessToken(oauth_token, oauth_verifier)
-
-	log.Printf("token: %s\n", token)
-	log.Printf("tokenSecret: %s\n", tokenSecret)
-	log.Printf("userid: %s\n", userid)
-	log.Printf("screenName: %s\n", screenName)
+	_ = token
+	_ = tokenSecret
+	_ = userid
+	// applog.Debugf("token: %s\n", token)
+	// applog.Debugf("tokenSecret: %s\n", tokenSecret)
+	// applog.Debugf("userid: %s\n", userid)
+	// applog.Debugf("screenName: %s\n", screenName)
 
 	if err != nil {
 		ErrorResponse(w, r, err)
@@ -1008,7 +1013,7 @@ func soauthHandler(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		pwd, err := RandomString(18)
 		if err != nil {
-			log.Printf("Could not generate password: %s", err.Error())
+			applog.Errorf("Could not generate password: %s", err.Error())
 			ErrorResponse(w, r, err)
 			return
 		}

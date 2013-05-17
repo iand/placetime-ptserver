@@ -1,10 +1,10 @@
 package main
 
 import (
+	"cgl.tideland.biz/applog"
 	"flag"
 	"github.com/BurntSushi/toml"
 	"github.com/placetime/datastore"
-	"log"
 	"os"
 	"os/user"
 	"path"
@@ -102,13 +102,13 @@ func readConfig() {
 	if configFile != "" {
 		configFile = path.Clean(configFile)
 		if _, err := toml.DecodeFile(configFile, &config); err != nil {
-			log.Printf("Could not read config file %s: %s", configFile, err.Error())
+			applog.Errorf("Could not read config file %s: %s", configFile, err.Error())
 			os.Exit(1)
 		}
 
-		log.Printf("Reading configuration from %s", configFile)
+		applog.Infof("Reading configuration from %s", configFile)
 	} else {
-		log.Printf("Using default configuration")
+		applog.Infof("Using default configuration")
 	}
 
 	// Some overrides from command line for backwards compatibility
@@ -125,18 +125,36 @@ func readConfig() {
 func checkEnvironment() {
 	f, err := os.Open(config.Image.Path)
 	if err != nil {
-		log.Printf("Could not open image path %s: %s", config.Image.Path, err.Error())
+		applog.Errorf("Could not open image path %s: %s", config.Image.Path, err.Error())
 		os.Exit(1)
 	}
 	defer f.Close()
 	fi, err := f.Stat()
 	if err != nil {
-		log.Printf("Could not stat image path %s: %s", config.Image.Path, err.Error())
+		applog.Errorf("Could not stat image path %s: %s", config.Image.Path, err.Error())
 		os.Exit(1)
 	}
 
 	if !fi.IsDir() {
-		log.Printf("Image path is not a directory %s: %s", config.Image.Path, err.Error())
+		applog.Errorf("Image path is not a directory %s: %s", config.Image.Path, err.Error())
+		os.Exit(1)
+	}
+
+	f, err = os.Open(config.Image.Path)
+	if err != nil {
+		applog.Errorf("Could not open web assets path %s: %s", config.Web.Path, err.Error())
+		os.Exit(1)
+	}
+	defer f.Close()
+
+	fi, err = f.Stat()
+	if err != nil {
+		applog.Errorf("Could not stat web assets path %s: %s", config.Web.Path, err.Error())
+		os.Exit(1)
+	}
+
+	if !fi.IsDir() {
+		applog.Errorf("Web assets path is not a directory %s: %s", config.Web.Path, err.Error())
 		os.Exit(1)
 	}
 
