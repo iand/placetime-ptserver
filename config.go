@@ -14,6 +14,7 @@ type Config struct {
 	Web       WebConfig        `toml:"web"`
 	Image     ImageConfig      `toml:"image"`
 	Datastore datastore.Config `toml:"datastore"`
+	Search    SearchConfig     `toml:"search"`
 }
 
 type WebConfig struct {
@@ -32,6 +33,10 @@ type ImageConfig struct {
 	Path string `toml:"path"`
 }
 
+type SearchConfig struct {
+	Lifetime int `toml:"lifetime"`
+}
+
 var (
 	DefaultConfig Config = Config{
 		Web: WebConfig{
@@ -47,6 +52,9 @@ var (
 			Path: "/var/opt/timescroll/img",
 		},
 		Datastore: datastore.DefaultConfig,
+		Search: SearchConfig{
+			Lifetime: 600,
+		},
 	}
 )
 

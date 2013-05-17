@@ -1104,7 +1104,7 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var result interface{}
+	var result SearchResults
 
 	srch := r.FormValue("s")
 	stype := r.FormValue("t")
@@ -1112,8 +1112,16 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 	if stype == "p" {
 		result = ProfileSearch(srch)
 	} else {
-
 		result = MultiplexedSearch(srch)
+		if items, ok := result.Results.(ItemSearchResults); ok {
+			s := datastore.NewRedisStore()
+			defer s.Close()
+
+			for _, item := range items {
+				s.AddTemporaryItem(item, config.Search.Lifetime)
+			}
+		}
+
 	}
 
 	json, err := json.MarshalIndent(result, "", "  ")
