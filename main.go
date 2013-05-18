@@ -1123,7 +1123,7 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 			defer s.Close()
 
 			for _, item := range items {
-				s.AddTemporaryItem(item, config.Search.Lifetime)
+				s.SaveItem(item, config.Search.Lifetime)
 			}
 		}
 
