@@ -2,7 +2,6 @@ package main
 
 import (
 	"cgl.tideland.biz/applog"
-	"flag"
 	"github.com/BurntSushi/toml"
 	"github.com/placetime/datastore"
 	"os"
@@ -69,15 +68,6 @@ var (
 )
 
 func readConfig() {
-	var configFile = ""
-	var assetsDir = ""
-	var imgDir = ""
-
-	flag.StringVar(&configFile, "config", "", "configuration file to use")
-	flag.StringVar(&assetsDir, "assets", "", "filesystem directory in which javascript/css/image assets are found")
-	flag.StringVar(&imgDir, "images", "/var/opt/timescroll/img", "filesystem directory to store fetched images")
-	flag.BoolVar(&doinit, "init", false, "re-initialize database (warning: will wipe eveything)")
-	flag.Parse()
 
 	config = DefaultConfig
 

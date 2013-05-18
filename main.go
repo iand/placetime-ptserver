@@ -7,24 +7,31 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"github.com/placetime/datastore"
+	"github.com/rcrowley/goagain"
 	"html/template"
 	"io/ioutil"
-
 	mr "math/rand"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 )
 
 var (
+	configFile        = ""
+	assetsDir         = ""
+	imgDir            = ""
 	config            Config
 	templatesDir      = "./templates"
 	newUserCookieName = "ptnewuser"
@@ -38,17 +45,17 @@ func main() {
 	mr.Seed(time.Now().UTC().UnixNano())
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	go func() {
-		http.ListenAndServe("localhost:6060", nil)
-	}()
+	flag.StringVar(&configFile, "config", "", "configuration file to use")
+	flag.StringVar(&assetsDir, "assets", "", "filesystem directory in which javascript/css/image assets are found")
+	flag.StringVar(&imgDir, "images", "/var/opt/timescroll/img", "filesystem directory to store fetched images")
+	flag.BoolVar(&doinit, "init", false, "re-initialize database (warning: will wipe eveything)")
+	flag.Parse()
 
-	readConfig()
-	checkEnvironment()
+	// go func() {
+	// 	http.ListenAndServe("localhost:6060", nil)
+	// }()
 
-	datastore.InitRedisStore(config.Datastore)
-
-	applog.Infof("Assets directory: %s", config.Web.Path)
-	applog.Infof("Image directory: %s", config.Image.Path)
+	Configure()
 
 	if doinit {
 		initData()
@@ -105,15 +112,111 @@ func main() {
 	r.PathPrefix("/-assets/").HandlerFunc(assetsHandler).Methods("GET", "HEAD")
 	r.PathPrefix("/-img/").HandlerFunc(imgHandler).Methods("GET", "HEAD")
 
-	applog.Infof("Listening on %s\n", config.Web.Address)
-
 	server := &http.Server{
 		Addr:        config.Web.Address,
 		Handler:     Log(r),
 		ReadTimeout: 30 * time.Second,
 	}
 
-	server.ListenAndServe()
+	listener, ppid, err := goagain.GetEnvs()
+	_ = ppid
+	if err != nil {
+		// This is master process
+
+		laddr, err := net.ResolveTCPAddr("tcp", config.Web.Address)
+		if err != nil {
+			applog.Errorf("Could not resolve TCP Address: %s", err.Error())
+			os.Exit(1)
+		}
+		applog.Infof("Listening on %v", laddr)
+
+		listener, err = net.ListenTCP("tcp", laddr)
+		if nil != err {
+			applog.Errorf("Could not listen on TCP Address: %s", err.Error())
+			os.Exit(1)
+		}
+
+		go server.Serve(listener)
+
+	} else {
+		// This is spawned process
+
+		// Resume listening and accepting connections in a new goroutine.
+		applog.Infof("Resuming listening on %v", listener.Addr())
+		go server.Serve(listener)
+
+		// Kill the parent, now that the child has started successfully.
+		applog.Infof("Killing parent pid %v", ppid)
+		if err := goagain.KillParent(ppid); nil != err {
+			applog.Errorf("Could not kill parent: %s", err.Error())
+			os.Exit(1)
+		}
+
+	}
+
+	// Block the main goroutine awaiting signals.
+	if err := AwaitSignals(listener); nil != err {
+		applog.Errorf("Error encountered in signal handler: %s", err.Error())
+		os.Exit(1)
+	}
+
+	// Do whatever's necessary to ensure a graceful exit like waiting for
+	// goroutines to terminate or a channel to become closed.
+
+	// In this case, we'll simply stop listening and wait one second.
+	if err := listener.Close(); nil != err {
+		applog.Errorf("Error while closing listener: %s", err.Error())
+		os.Exit(1)
+	}
+	time.Sleep(1 * time.Second)
+}
+
+func Configure() {
+	readConfig()
+	checkEnvironment()
+
+	datastore.InitRedisStore(config.Datastore)
+
+	applog.Infof("Assets directory: %s", config.Web.Path)
+	applog.Infof("Image directory: %s", config.Image.Path)
+
+}
+
+func AwaitSignals(l net.Listener) error {
+	ch := make(chan os.Signal, 2)
+	signal.Notify(ch, syscall.SIGTERM, syscall.SIGUSR2, syscall.SIGHUP)
+	for {
+		sig := <-ch
+		applog.Debugf("Received signal: %s", sig.String())
+		switch sig {
+
+		// SIGHUP should reload configuration.
+
+		case syscall.SIGHUP:
+			applog.Infof("Re-reading configuration")
+			Configure()
+
+		// SIGQUIT should exit gracefully. However, Go doesn't seem
+		// to like handling SIGQUIT (or any signal which dumps core by
+		// default) at all so SIGTERM takes its place. How graceful
+		// this exit is depends on what the program does after this
+		// function returns control.
+		case syscall.SIGTERM:
+			return nil
+
+		// TODO SIGUSR1 should reopen logs.
+
+		// SIGUSR2 begins the process of restarting without dropping
+		// the listener passed to this function.
+		case syscall.SIGUSR2:
+			err := goagain.Relaunch(l)
+			if nil != err {
+				return err
+			}
+
+		}
+	}
+	return nil // It'll never get here.
 }
 
 func Hostname() string {
