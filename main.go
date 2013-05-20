@@ -750,6 +750,9 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	link := r.FormValue("link")
 	ets := r.FormValue("ets")
 	image := r.FormValue("image")
+
+	applog.Debugf("Adding item pid: %s, text: %s, link: %s, ets: %v, image: %s", pid, text, link, ets, image)
+
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
