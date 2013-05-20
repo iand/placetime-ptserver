@@ -793,7 +793,27 @@ func promoteHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, r, err)
 		return
 	}
-	fmt.Fprint(w, "ACK")
+
+	item, err := s.Item(id)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	items, err := s.ItemInTimeline(item, pid, "m")
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	json, err := json.MarshalIndent(items, "", "  ")
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Write(json)
+
 }
 
 func demoteHandler(w http.ResponseWriter, r *http.Request) {
