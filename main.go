@@ -9,6 +9,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/kurrik/oauth1a"
+	"github.com/kurrik/twittergo"
 	"github.com/placetime/datastore"
 	"github.com/rcrowley/goagain"
 	"html/template"
@@ -17,6 +19,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"net/url"
 	"os"
 	"os/signal"
 	"path"
@@ -221,7 +224,7 @@ func AwaitSignals(l net.Listener) error {
 
 func Hostname() string {
 	h, _ := os.Hostname()
-	if h == "ursa" {
+	if h == "quickling" {
 		return "127.0.0.1:8081"
 	}
 	return "placetime.com"
@@ -591,13 +594,13 @@ func initData() {
 	// }
 
 	applog.Infof("Adding profile for iand")
-	err := s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "", "nospam@iandavis.com")
+	err := s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "", "nospam@iandavis.com", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for @iand: %s", err.Error())
 	}
 
 	applog.Infof("Adding profile for daveg")
-	err = s.AddProfile("@daveg", "sunshine", "Dave", "", "", "", "")
+	err = s.AddProfile("@daveg", "sunshine", "Dave", "", "", "", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for @daveg: %s", err.Error())
 	}
@@ -606,7 +609,7 @@ func initData() {
 	//s.Follow("iand", "nasa")
 
 	applog.Infof("Adding profile for nasa")
-	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "")
+	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "", "", "", "", "")
 
 	// s.Follow("@iand", "@nasa")
 
@@ -623,7 +626,6 @@ func initData() {
 	s.AddItem("@nasa", parseKnownTime("1 Jan 2014"), "Mars Sample Return Mission - Launch of NASA sample return mission to Mars", "", "", "")
 	s.AddItem("@nasa", parseKnownTime("5 Apr 2231"), "Pluto - is passed by Neptune in distance from the Sun for the next 20 years", "", "", "")
 
-	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "")
 	//http: //www.ents24.com/web/festival-tickets/T-In-The-Park-2013-2998409.html
 
 	// s.SetProfile(&Profile{Pid: "o2shepherdsbushempire ", Name: "O2 Shepherd's Bush Empire Events", Bio: "", Feed: "http://www.o2shepherdsbushempire.co.uk/RSS"})
@@ -643,31 +645,31 @@ func initData() {
 	// s.AddProfile("indymedia", "sunshine", "Indymedia London | Events | Index", "", "http://london.indymedia.org/events.rss", "")
 
 	applog.Infof("Adding profile for @visitlondon")
-	err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "")
+	err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for @visitlondon: %s", err.Error())
 	}
 
 	applog.Infof("Adding feed profile for londonsportsguide")
-	err = s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon", "")
+	err = s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for londonsportsguide: %s", err.Error())
 	}
 
 	applog.Infof("Adding feed profile for londonartsguide")
-	err = s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon", "")
+	err = s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for londonartsguide: %s", err.Error())
 	}
 
 	applog.Infof("Adding feed profile for londondanceguide")
-	err = s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon", "")
+	err = s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for londondanceguide: %s", err.Error())
 	}
 
 	applog.Infof("Adding feed profile for o2shepherdsbushempire")
-	err = s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", "http://www.o2shepherdsbushempire.co.uk/RSS", "", "")
+	err = s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", "http://www.o2shepherdsbushempire.co.uk/RSS", "", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for o2shepherdsbushempire: %s", err.Error())
 	}
@@ -967,6 +969,56 @@ func checkSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func createOauthSession(w http.ResponseWriter, r *http.Request, userConfig *oauth1a.UserConfig) (string, error) {
+	s := datastore.NewRedisStore()
+	defer s.Close()
+
+	data, err := json.Marshal(userConfig)
+	if err != nil {
+		return "", err
+	}
+
+	temporaryKey, _ := RandomString(12)
+
+	err = s.SetOauthSessionData(temporaryKey, string(data))
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return "", err
+	}
+	cookie := http.Cookie{Name: "oatmp", Value: temporaryKey, Path: "/", MaxAge: 600}
+	http.SetCookie(w, &cookie)
+	return temporaryKey, nil
+}
+
+func readOauthSession(w http.ResponseWriter, r *http.Request) (*oauth1a.UserConfig, error) {
+	s := datastore.NewRedisStore()
+	defer s.Close()
+
+	cookie, err := r.Cookie("oatmp")
+	if err != nil {
+		applog.Errorf("Could not read oatmp cookie: %s", err.Error())
+		return nil, err
+	}
+
+	key := cookie.Value
+
+	data, err := s.GetOauthSessionData(key)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return nil, err
+	}
+
+	userConfig := &oauth1a.UserConfig{}
+
+	err = json.Unmarshal([]byte(data), userConfig)
+
+	if err != nil {
+		applog.Errorf("Could not unmarshal oauth session data: %s", err.Error())
+		return nil, err
+	}
+	return userConfig, nil
+}
+
 func addProfileHandler(w http.ResponseWriter, r *http.Request) {
 	pid := r.FormValue("pid")
 	pwd := r.FormValue("pwd")
@@ -989,7 +1041,7 @@ func addProfileHandler(w http.ResponseWriter, r *http.Request) {
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	err = s.AddProfile(pid, pwd, name, bio, feedurl, parentpid, email)
+	err = s.AddProfile(pid, pwd, name, bio, feedurl, parentpid, email, "", "", "", "")
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
@@ -1091,49 +1143,113 @@ func flagProfileHandler(w http.ResponseWriter, r *http.Request) {
 
 func twitterHandler(w http.ResponseWriter, r *http.Request) {
 
-	callback := fmt.Sprintf("http://%s/-soauth", Hostname())
+	// callback := fmt.Sprintf("http://%s/-soauth", Hostname())
 
-	token, tokenSecret, callbackConfirmed, err := GetTwitterRequestToken(callback)
-	_ = tokenSecret
-	_ = callbackConfirmed
-	// applog.Debugf("token: %s\n", token)
-	// applog.Debugf("tokenSecret: %s\n", tokenSecret)
-	// applog.Debugf("callbackConfirmed: %s\n", callbackConfirmed)
+	// token, tokenSecret, callbackConfirmed, err := GetTwitterRequestToken(callback)
+	// _ = tokenSecret
+	// _ = callbackConfirmed
+	// applog.Debugf("token: %s", token)
+	// applog.Debugf("tokenSecret: %s", tokenSecret)
+	// applog.Debugf("callbackConfirmed: %s", callbackConfirmed)
 
+	// if err != nil {
+	// 	ErrorResponse(w, r, err)
+	// 	return
+	// }
+
+	service := OauthService()
+
+	httpClient := new(http.Client)
+	userConfig := &oauth1a.UserConfig{}
+	err := userConfig.GetRequestToken(service, httpClient)
 	if err != nil {
-		ErrorResponse(w, r, err)
+		applog.Errorf("Problem getting the request token: %v", err)
+		ErrorResponse(w, r, errors.New("Problem getting the request token"))
+		return
+	}
+	url, err := userConfig.GetAuthorizeURL(service)
+	if err != nil {
+		applog.Errorf("Problem getting the authorization URL: %v", err)
+		ErrorResponse(w, r, errors.New("Problem getting the authorization URL"))
 		return
 	}
 
-	http.Redirect(w, r, fmt.Sprintf("https://api.twitter.com/oauth/authenticate?oauth_token=%s", token), http.StatusFound)
+	createOauthSession(w, r, userConfig)
+	applog.Infof("Redirecting user to %s", url)
+
+	http.Redirect(w, r, url, http.StatusFound)
 
 }
 func soauthHandler(w http.ResponseWriter, r *http.Request) {
-	oauth_token := r.FormValue("oauth_token")
-	oauth_verifier := r.FormValue("oauth_verifier")
-	// applog.Debugf("oauth_token: %s\n", oauth_token)
-	// applog.Debugf("oauth_verifier: %s\n", oauth_verifier)
+	service := OauthService()
 
-	token, tokenSecret, userid, screenName, err := GetTwitterAccessToken(oauth_token, oauth_verifier)
-	_ = token
-	_ = tokenSecret
-	_ = userid
-	// applog.Debugf("token: %s\n", token)
-	// applog.Debugf("tokenSecret: %s\n", tokenSecret)
-	// applog.Debugf("userid: %s\n", userid)
-	// applog.Debugf("screenName: %s\n", screenName)
+	userConfig, err := readOauthSession(w, r)
+	if err != nil {
+		applog.Errorf("Could not read oauth session: %v", err)
+		ErrorResponse(w, r, errors.New("Could not parse authorization"))
+		return
+	}
 
+	token, verifier, err := userConfig.ParseAuthorize(r, service)
+	if err != nil {
+		applog.Errorf("Could not parse authorization: %v", err)
+		ErrorResponse(w, r, errors.New("Could not parse authorization"))
+		return
+	}
+	httpClient := new(http.Client)
+	err = userConfig.GetAccessToken(token, verifier, service, httpClient)
+	if err != nil {
+		applog.Errorf("Error getting access token: %v", err)
+		ErrorResponse(w, r, errors.New("Problem getting an access token"))
+		return
+	}
+
+	applog.Infof("Access Token: %s", userConfig.AccessTokenKey)
+	applog.Infof("Token Secret: %s", userConfig.AccessTokenSecret)
+	applog.Infof("Screen name: %s", userConfig.AccessValues.Get("screen_name"))
+	screenName := userConfig.AccessValues.Get("screen_name")
+
+	client := twittergo.NewClient(service.ClientConfig, userConfig)
+
+	query := url.Values{}
+	query.Set("screen_name", screenName)
+
+	req, _ := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/1.1/users/show.json?%s", query.Encode()), nil)
+	response, err := client.SendRequest(req)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
 	}
 
-	screenName = fmt.Sprintf("@%s", screenName)
+	defer response.Body.Close()
+	contents, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		applog.Errorf("Received an error while reading twitter response: %s", err)
+		return
+	}
+
+	twitterUserData := &TwitterUser{}
+	err = json.Unmarshal(contents, twitterUserData)
+
+	if err != nil {
+		ErrorResponse(w, r, err)
+	}
+
+	//	println(string(contents))
+
+	applog.Infof("Twitter Name: %s", twitterUserData.Name)
+	applog.Infof("Twitter Location: %s", twitterUserData.Location)
+	applog.Infof("Twitter Description: %s", twitterUserData.Description)
+	applog.Infof("Twitter Url: %s", twitterUserData.Url)
+	applog.Infof("Twitter ProfileImageUrl: %s", twitterUserData.ProfileImageUrl)
+	applog.Infof("Twitter ProfileImageUrlHttps: %s", twitterUserData.ProfileImageUrlHttps)
+
+	pid := fmt.Sprintf("@%s", screenName)
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	exists, err := s.ProfileExists(screenName)
+	exists, err := s.ProfileExists(pid)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
@@ -1146,7 +1262,7 @@ func soauthHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = s.AddProfile(screenName, pwd, screenName, "", "", "", "")
+		err = s.AddProfile(pid, pwd, twitterUserData.Name, twitterUserData.Description, "", "", "", twitterUserData.Location, twitterUserData.Url, twitterUserData.ProfileImageUrl, twitterUserData.ProfileImageUrlHttps)
 		if err != nil {
 			ErrorResponse(w, r, err)
 			return
@@ -1155,9 +1271,19 @@ func soauthHandler(w http.ResponseWriter, r *http.Request) {
 		cookie := http.Cookie{Name: newUserCookieName, Value: "true", Path: "/", MaxAge: config.Web.Session.Duration}
 		http.SetCookie(w, &cookie)
 
+	} else {
+		values := make(map[string]string, 0)
+		values["name"] = twitterUserData.Name
+		values["bio"] = twitterUserData.Description
+		values["url"] = twitterUserData.Url
+		values["location"] = twitterUserData.Location
+		values["profileimageurl"] = twitterUserData.ProfileImageUrl
+		values["profileimageurlhttps"] = twitterUserData.ProfileImageUrlHttps
+
+		s.UpdateProfile(pid, values)
 	}
 
-	createSession(screenName, w, r)
+	createSession(pid, w, r)
 	http.Redirect(w, r, "/timeline", http.StatusFound)
 
 }
@@ -1334,4 +1460,18 @@ func jsonFlaggedProfilesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Write(json)
+}
+
+func OauthService() *oauth1a.Service {
+	return &oauth1a.Service{
+		RequestURL:   "https://api.twitter.com/oauth/request_token",
+		AuthorizeURL: "https://api.twitter.com/oauth/authorize",
+		AccessURL:    "https://api.twitter.com/oauth/access_token",
+		ClientConfig: &oauth1a.ClientConfig{
+			ConsumerKey:    config.Twitter.OAuthConsumerKey,
+			ConsumerSecret: config.Twitter.OAuthConsumerSecret,
+			CallbackURL:    fmt.Sprintf("http://%s/-soauth", Hostname()),
+		},
+		Signer: new(oauth1a.HmacSha1Signer),
+	}
 }

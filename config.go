@@ -14,6 +14,7 @@ type Config struct {
 	Image     ImageConfig      `toml:"image"`
 	Datastore datastore.Config `toml:"datastore"`
 	Search    SearchConfig     `toml:"search"`
+	Twitter   TwitterConfig    `toml:"twitter"`
 }
 
 type WebConfig struct {
@@ -42,6 +43,11 @@ type EventfulConfig struct {
 	AppKey string `toml:"appkey"`
 }
 
+type TwitterConfig struct {
+	OAuthConsumerKey    string `toml:"consumerkey"`
+	OAuthConsumerSecret string `toml:"consumersecret"`
+}
+
 var (
 	DefaultConfig Config = Config{
 		Web: WebConfig{
@@ -63,6 +69,10 @@ var (
 			Eventful: EventfulConfig{
 				AppKey: "h6xD8gZFzDK5m498",
 			},
+		},
+		Twitter: TwitterConfig{
+			OAuthConsumerKey:    "Fnky4HZ8z4NsOxRniTvCA",
+			OAuthConsumerSecret: "iv9q7CTYfrls05eFlhyEkPpHcJqseSWpbDx8GIyGvg",
 		},
 	}
 )
