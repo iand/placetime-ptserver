@@ -174,7 +174,7 @@ func searchEventfulEvents(srch string, pid string) ItemSearchResults {
 			hasher := md5.New()
 			io.WriteString(hasher, item.Id)
 			id := fmt.Sprintf("%x", hasher.Sum(nil))
-			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: item.When.Unix(), Text: item.Title, Link: item.Link, Media: "text", Image: item.Image})
+			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: datastore.FakeEventPrecision(item.When), Text: item.Title, Link: item.Link, Media: "text", Image: item.Image})
 		}
 	}
 	return items

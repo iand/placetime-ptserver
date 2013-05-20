@@ -1217,6 +1217,11 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 	srch := r.FormValue("s")
 	stype := r.FormValue("t")
 
+	if srch == "" {
+		ErrorResponse(w, r, errors.New("Invalid search entered"))
+		return
+	}
+
 	if stype == "p" {
 		result = ProfileSearch(srch)
 	} else {
