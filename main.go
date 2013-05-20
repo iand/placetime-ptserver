@@ -235,8 +235,10 @@ func Log(handler http.Handler) http.Handler {
 }
 
 func ErrorResponse(w http.ResponseWriter, r *http.Request, err error) {
-	applog.Errorf("%s (%s)", err.Error(), r.URL)
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+	errcode, _ := RandomString(8)
+
+	applog.Errorf("ERR503%s (%s) (code:%s)", err.Error(), r.URL, errcode)
+	http.Error(w, fmt.Sprintf("An unexpected error occurred. (%s)", errcode), http.StatusInternalServerError)
 }
 
 func assetsHandler(w http.ResponseWriter, r *http.Request) {
