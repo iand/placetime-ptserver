@@ -166,7 +166,7 @@ func searchYoutubeVidoes(srch string, pid datastore.PidType) ItemSearchResults {
 		for _, item := range feed.Items {
 			hasher := md5.New()
 			io.WriteString(hasher, item.Id)
-			id := fmt.Sprintf("%x", hasher.Sum(nil))
+			id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
 			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: item.Title, Link: item.Link, Media: "video", Image: item.Image})
 		}
 	}
@@ -204,7 +204,7 @@ func searchEventfulEvents(srch string, pid datastore.PidType) ItemSearchResults 
 		for _, item := range feed.Items {
 			hasher := md5.New()
 			io.WriteString(hasher, item.Id)
-			id := fmt.Sprintf("%x", hasher.Sum(nil))
+			id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
 			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: datastore.FakeEventPrecision(item.When), Text: item.Title, Link: item.Link, Media: "text", Image: item.Image})
 		}
 	}

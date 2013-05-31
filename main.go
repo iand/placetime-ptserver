@@ -281,7 +281,7 @@ func itemHandler(w http.ResponseWriter, r *http.Request) {
 	templates := template.Must(template.ParseFiles(path.Join(config.Web.Path, "html/item.html")))
 
 	vars := mux.Vars(r)
-	id := vars["id"]
+	id := datastore.ItemIdType(vars["id"])
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -364,7 +364,7 @@ func jsonItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.FormValue("id")
+	id := datastore.ItemIdType(r.FormValue("id"))
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -713,7 +713,7 @@ func promoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.FormValue("id")
+	id := datastore.ItemIdType(r.FormValue("id"))
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
@@ -757,7 +757,7 @@ func demoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id := r.FormValue("id")
+	id := datastore.ItemIdType(r.FormValue("id"))
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
