@@ -20,7 +20,7 @@ type ProfileSearchResults []*datastore.Profile
 
 type ItemSearchResults []*datastore.Item
 
-type SearchFunc func(srch string, pid string) ItemSearchResults
+type SearchFunc func(srch string, pid datastore.PidType) ItemSearchResults
 
 func ProfileSearch(srch string) SearchResults {
 	s := datastore.NewRedisStore()
@@ -31,7 +31,7 @@ func ProfileSearch(srch string) SearchResults {
 	return SearchResults{Results: plist}
 }
 
-func ItemSearch(srch string, pid string) SearchResults {
+func ItemSearch(srch string, pid datastore.PidType) SearchResults {
 	searches := []SearchFunc{
 		searchYoutubeVidoes,
 		searchEventfulEvents,
@@ -40,7 +40,7 @@ func ItemSearch(srch string, pid string) SearchResults {
 	return MultiplexedSearch(srch, pid, searches)
 }
 
-func VideoSearch(srch string, pid string) SearchResults {
+func VideoSearch(srch string, pid datastore.PidType) SearchResults {
 
 	searches := []SearchFunc{
 		searchYoutubeVidoes,
@@ -49,14 +49,14 @@ func VideoSearch(srch string, pid string) SearchResults {
 	return MultiplexedSearch(srch, pid, searches)
 }
 
-func AudioSearch(srch string, pid string) SearchResults {
+func AudioSearch(srch string, pid datastore.PidType) SearchResults {
 
 	searches := []SearchFunc{}
 
 	return MultiplexedSearch(srch, pid, searches)
 }
 
-func EventSearch(srch string, pid string) SearchResults {
+func EventSearch(srch string, pid datastore.PidType) SearchResults {
 
 	searches := []SearchFunc{
 		searchEventfulEvents,
@@ -65,7 +65,7 @@ func EventSearch(srch string, pid string) SearchResults {
 	return MultiplexedSearch(srch, pid, searches)
 }
 
-func MultiplexedSearch(srch string, pid string, searches []SearchFunc) SearchResults {
+func MultiplexedSearch(srch string, pid datastore.PidType, searches []SearchFunc) SearchResults {
 	results := make(ItemSearchResults, 0)
 
 	items := make(chan ItemSearchResults)
@@ -104,7 +104,7 @@ func MultiplexedSearch(srch string, pid string, searches []SearchFunc) SearchRes
 
 }
 
-func searchYoutubeChannels(srch string, pid string) ProfileSearchResults {
+func searchYoutubeChannels(srch string, pid datastore.PidType) ProfileSearchResults {
 	plist := make([]*datastore.Profile, 0)
 
 	url := fmt.Sprintf("https://gdata.youtube.com/feeds/api/channels?q=%s&v=2", srch)
@@ -138,7 +138,7 @@ func searchYoutubeChannels(srch string, pid string) ProfileSearchResults {
 
 }
 
-func searchYoutubeVidoes(srch string, pid string) ItemSearchResults {
+func searchYoutubeVidoes(srch string, pid datastore.PidType) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
 	url := fmt.Sprintf("https://gdata.youtube.com/feeds/api/videos?v=2&q=%s", url.QueryEscape(srch))
@@ -174,7 +174,7 @@ func searchYoutubeVidoes(srch string, pid string) ItemSearchResults {
 
 }
 
-func searchEventfulEvents(srch string, pid string) ItemSearchResults {
+func searchEventfulEvents(srch string, pid datastore.PidType) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
 	url := fmt.Sprintf("http://api.eventful.com/rest/events/rss?app_key=%s&date=Future&keywords=%s", url.QueryEscape(config.Search.Eventful.AppKey), url.QueryEscape(srch))

@@ -312,7 +312,7 @@ func jsonTimelineHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pidParam := r.FormValue("pid")
+	pidParam := datastore.PidType(r.FormValue("pid"))
 	statusParam := r.FormValue("status")
 
 	if statusParam != "m" {
@@ -418,7 +418,7 @@ func jsonFollowersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 
 	countParam := r.FormValue("count")
 	count, err := strconv.ParseInt(countParam, 10, 0)
@@ -457,7 +457,7 @@ func jsonFollowingHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 
 	countParam := r.FormValue("count")
 	count, err := strconv.ParseInt(countParam, 10, 0)
@@ -496,7 +496,7 @@ func jsonProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -523,13 +523,13 @@ func followHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	if pid != sessionPid && !isAdmin(sessionPid) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	followpid := r.FormValue("followpid")
+	followpid := datastore.PidType(r.FormValue("followpid"))
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
@@ -543,13 +543,13 @@ func unfollowHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	if pid != sessionPid {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	followpid := r.FormValue("followpid")
+	followpid := datastore.PidType(r.FormValue("followpid"))
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
@@ -674,7 +674,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	text := r.FormValue("text")
 	link := r.FormValue("link")
 	ets := r.FormValue("ets")
@@ -707,7 +707,7 @@ func promoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	if pid != sessionPid && !isAdmin(sessionPid) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -751,7 +751,7 @@ func demoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	if pid != sessionPid && !isAdmin(sessionPid) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
@@ -779,7 +779,7 @@ func addSuggestHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	loc := r.FormValue("loc")
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -801,7 +801,7 @@ func remSuggestHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	loc := r.FormValue("loc")
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -815,7 +815,7 @@ func remSuggestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func sessionHandler(w http.ResponseWriter, r *http.Request) {
-	pid := strings.ToLower(r.FormValue("pid"))
+	pid := datastore.PidType(strings.ToLower(r.FormValue("pid")))
 	pwd := r.FormValue("pwd")
 
 	s := datastore.NewRedisStore()
@@ -831,15 +831,15 @@ func sessionHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "")
 }
 
-func checkSession(w http.ResponseWriter, r *http.Request, silent bool) (bool, string) {
-	var pid string
+func checkSession(w http.ResponseWriter, r *http.Request, silent bool) (bool, datastore.PidType) {
+	var pid datastore.PidType
 	valid := false
 
 	cookie, err := r.Cookie(config.Web.Session.Cookie)
 	if err == nil {
 		parts := strings.Split(cookie.Value, "|")
 		if len(parts) == 2 {
-			pid = parts[0]
+			pid = datastore.PidType(parts[0])
 			sessionId, err := strconv.ParseInt(parts[1], 10, 64)
 			s := datastore.NewRedisStore()
 			defer s.Close()
@@ -848,14 +848,14 @@ func checkSession(w http.ResponseWriter, r *http.Request, silent bool) (bool, st
 				valid, err = s.ValidSession(pid, sessionId)
 				if err != nil {
 					ErrorResponse(w, r, err)
-					return false, ""
+					return false, datastore.PidType("")
 				}
 
 				if valid {
 					newSessionId, err := s.SessionId(pid)
 					if err != nil {
 						ErrorResponse(w, r, err)
-						return false, ""
+						return false, datastore.PidType("")
 					}
 
 					value := fmt.Sprintf("%s|%d", pid, newSessionId)
@@ -872,10 +872,10 @@ func checkSession(w http.ResponseWriter, r *http.Request, silent bool) (bool, st
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	}
 
-	return valid, pid
+	return valid, datastore.PidType(pid)
 
 }
-func createSession(pid string, w http.ResponseWriter, r *http.Request) {
+func createSession(pid datastore.PidType, w http.ResponseWriter, r *http.Request) {
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
@@ -950,12 +950,12 @@ func readOauthSession(w http.ResponseWriter, r *http.Request) (*oauth1a.UserConf
 }
 
 func addProfileHandler(w http.ResponseWriter, r *http.Request) {
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	pwd := r.FormValue("pwd")
 	name := r.FormValue("pname")
 	feedurl := r.FormValue("feedurl")
 	bio := r.FormValue("bio")
-	parentpid := r.FormValue("parentpid")
+	parentpid := datastore.PidType(r.FormValue("parentpid"))
 	email := r.FormValue("email")
 
 	var err error
@@ -997,7 +997,7 @@ func updateProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 
 	values := make(map[string]string, 0)
 
@@ -1028,7 +1028,7 @@ func removeProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -1046,7 +1046,7 @@ func flagProfileHandler(w http.ResponseWriter, r *http.Request) {
 	if !sessionValid {
 		return
 	}
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 	if pid == "" {
 		ErrorResponse(w, r, errors.New("Missing required parameter 'pid'"))
 		return
@@ -1138,7 +1138,7 @@ func soauthHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, r, err)
 	}
 
-	pid := fmt.Sprintf("@%s", screenName)
+	pid := datastore.PidType(fmt.Sprintf("@%s", screenName))
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -1230,7 +1230,7 @@ func jsonFeedsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pid := r.FormValue("pid")
+	pid := datastore.PidType(r.FormValue("pid"))
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -1300,9 +1300,9 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func isAdmin(pid string) bool {
+func isAdmin(pid datastore.PidType) bool {
 	for _, v := range config.Web.Admins {
-		if v == pid {
+		if datastore.PidType(v) == pid {
 			return true
 		}
 	}
