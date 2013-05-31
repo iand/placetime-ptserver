@@ -575,9 +575,9 @@ func initData() {
 	if err != nil {
 		applog.Errorf("Could not add profile for @daveg: %s", err.Error())
 	}
-	s.AddSuggestedProfile("iand", "london")
+	s.AddSuggestedProfile("@iand", "london")
 
-	applog.Infof("Adding profile for nasa")
+	applog.Infof("Adding profile for @nasa")
 	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "", "", "", "", "")
 
 	applog.Infof("Adding items for nasa")
@@ -1270,7 +1270,15 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 	if stype == "p" {
 		result = ProfileSearch(srch)
 	} else {
-		result = MultiplexedSearch(srch, pid)
+		if stype == "v" {
+			result = VideoSearch(srch, pid)
+		} else if stype == "a" {
+			result = AudioSearch(srch, pid)
+		} else if stype == "e" {
+			result = EventSearch(srch, pid)
+		} else {
+			result = ItemSearch(srch, pid)
+		}
 		if items, ok := result.Results.(ItemSearchResults); ok {
 			s := datastore.NewRedisStore()
 			defer s.Close()

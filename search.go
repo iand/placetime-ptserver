@@ -20,6 +20,8 @@ type ProfileSearchResults []*datastore.Profile
 
 type ItemSearchResults []*datastore.Item
 
+type SearchFunc func(srch string, pid string) ItemSearchResults
+
 func ProfileSearch(srch string) SearchResults {
 	s := datastore.NewRedisStore()
 	defer s.Close()
@@ -29,18 +31,47 @@ func ProfileSearch(srch string) SearchResults {
 	return SearchResults{Results: plist}
 }
 
-func MultiplexedSearch(srch string, pid string) SearchResults {
+func ItemSearch(srch string, pid string) SearchResults {
+	searches := []SearchFunc{
+		searchYoutubeVidoes,
+		searchEventfulEvents,
+	}
+
+	return MultiplexedSearch(srch, pid, searches)
+}
+
+func VideoSearch(srch string, pid string) SearchResults {
+
+	searches := []SearchFunc{
+		searchYoutubeVidoes,
+	}
+
+	return MultiplexedSearch(srch, pid, searches)
+}
+
+func AudioSearch(srch string, pid string) SearchResults {
+
+	searches := []SearchFunc{}
+
+	return MultiplexedSearch(srch, pid, searches)
+}
+
+func EventSearch(srch string, pid string) SearchResults {
+
+	searches := []SearchFunc{
+		searchEventfulEvents,
+	}
+
+	return MultiplexedSearch(srch, pid, searches)
+}
+
+func MultiplexedSearch(srch string, pid string, searches []SearchFunc) SearchResults {
 	results := make(ItemSearchResults, 0)
 
 	items := make(chan ItemSearchResults)
 
-	searches := []func(){
-		func() { items <- searchYoutubeVidoes(srch, pid) },
-		func() { items <- searchEventfulEvents(srch, pid) },
-	}
-
 	for _, f := range searches {
-		go f()
+		go func() { items <- f(srch, pid) }()
 	}
 
 	lists := make([]ItemSearchResults, 0)
