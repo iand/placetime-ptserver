@@ -37,9 +37,14 @@ type SearchConfig struct {
 	Lifetime int            `toml:"lifetime"`
 	Timeout  int            `toml:"timeout"`
 	Eventful EventfulConfig `toml:"eventful"`
+	Songkick SongkickConfig `toml:"songkick"`
 }
 
 type EventfulConfig struct {
+	AppKey string `toml:"appkey"`
+}
+
+type SongkickConfig struct {
 	AppKey string `toml:"appkey"`
 }
 
@@ -68,6 +73,9 @@ var (
 			Timeout:  15000,
 			Eventful: EventfulConfig{
 				AppKey: "h6xD8gZFzDK5m498",
+			},
+			Songkick: SongkickConfig{
+				AppKey: "KVAGcEtQWTuMJJUX",
 			},
 		},
 		Twitter: TwitterConfig{

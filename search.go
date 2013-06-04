@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/iand/feedparser"
+	"github.com/iand/spotify"
 	"github.com/placetime/datastore"
 	"io"
 	"net/http"
@@ -35,6 +36,7 @@ func ItemSearch(srch string, pid datastore.PidType) SearchResults {
 	searches := []SearchFunc{
 		searchYoutubeVidoes,
 		searchEventfulEvents,
+		searchSpotifyTracks,
 	}
 
 	return MultiplexedSearch(srch, pid, searches)
@@ -51,7 +53,9 @@ func VideoSearch(srch string, pid datastore.PidType) SearchResults {
 
 func AudioSearch(srch string, pid datastore.PidType) SearchResults {
 
-	searches := []SearchFunc{}
+	searches := []SearchFunc{
+		searchSpotifyTracks,
+	}
 
 	return MultiplexedSearch(srch, pid, searches)
 }
@@ -205,7 +209,31 @@ func searchEventfulEvents(srch string, pid datastore.PidType) ItemSearchResults 
 			hasher := md5.New()
 			io.WriteString(hasher, item.Id)
 			id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
-			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: datastore.FakeEventPrecision(item.When), Text: item.Title, Link: item.Link, Media: "text", Image: item.Image})
+			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: datastore.FakeEventPrecision(item.When), Text: item.Title, Link: item.Link, Media: "event", Image: item.Image})
+		}
+	}
+	return items
+
+}
+
+func searchSpotifyTracks(srch string, pid datastore.PidType) ItemSearchResults {
+	items := make([]*datastore.Item, 0)
+
+	client := spotify.New()
+	resp, err := client.SearchTracks(srch, 1)
+
+	if err != nil {
+		applog.Errorf("Fetch of spotify search got http error  %s", err.Error())
+		return items
+	}
+
+	if resp != nil {
+		applog.Debugf("Received %d items from spotify matching %s", len(resp.Tracks), srch)
+		for _, track := range resp.Tracks {
+			hasher := md5.New()
+			io.WriteString(hasher, track.URI)
+			id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
+			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: track.Name, Link: track.URI, Media: "audio"})
 		}
 	}
 	return items
