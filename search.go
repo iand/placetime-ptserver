@@ -7,6 +7,7 @@ import (
 	"github.com/iand/feedparser"
 	"github.com/iand/lastfm"
 	"github.com/iand/spotify"
+	"github.com/iand/youtube"
 	"github.com/placetime/datastore"
 	"io"
 	"io/ioutil"
@@ -150,33 +151,42 @@ func searchYoutubeChannels(srch string, pid datastore.PidType) ProfileSearchResu
 func searchYoutubeVidoes(srch string, pid datastore.PidType) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
-	url := fmt.Sprintf("https://gdata.youtube.com/feeds/api/videos?v=2&q=%s", url.QueryEscape(srch))
+	c := youtube.New()
 
-	applog.Debugf("Fetching %s", url)
-
-	resp, err := http.Get(url)
-
+	feed, err := c.VideoSearch(srch)
 	if err != nil {
 		applog.Errorf("Fetch of feed got http error  %s", err.Error())
 		return items
-	}
-
-	defer resp.Body.Close()
-
-	feed, err := feedparser.NewFeed(resp.Body)
-
-	if err != nil {
-		applog.Errorf("Fetch of feed got http error  %s", err.Error())
-		return items
-
 	}
 
 	if feed != nil {
-		for _, item := range feed.Items {
+		for _, item := range feed.Entries {
 			hasher := md5.New()
-			io.WriteString(hasher, item.Id)
+			io.WriteString(hasher, item.ID.Value)
 			id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
-			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: item.Title, Link: item.Link, Media: "video", Image: item.Image})
+
+			var url string
+			for _, link := range item.Links {
+				if link.Rel == "self" {
+					url = link.Href
+					break
+				}
+			}
+
+			bestImage, bestImageName := "", ""
+
+			for _, img := range item.Media.Thumbnails {
+				if img.Name == "sddefault" ||
+					(img.Name == "hqdefault" && bestImageName != "sddefault") ||
+					(img.Name == "mqdefault" && bestImageName != "sddefault" && bestImageName != "hqdefault") ||
+					(img.Name == "default " && bestImageName != "mqdefault" && bestImageName != "sddefault" && bestImageName != "hqdefault") {
+					bestImage = img.URL
+					bestImageName = img.Name
+
+				}
+			}
+
+			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: item.Title.Value, Link: url, Media: "video", Image: bestImage, Duration: item.Media.Duration.Seconds})
 		}
 	}
 	return items
