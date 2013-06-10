@@ -6,12 +6,8 @@ import (
 	"fmt"
 	"github.com/iand/feedparser"
 	"github.com/iand/lastfm"
-	"github.com/iand/salience"
 	"github.com/iand/spotify"
 	"github.com/placetime/datastore"
-	"image"
-	_ "image/jpeg"
-	"image/png"
 	"io"
 	"net/http"
 	"net/url"
@@ -292,34 +288,5 @@ func fetchTrackImage(trackname string, artist string, itemID datastore.ItemIdTyp
 
 	}
 
-	applog.Debugf("Best image for %s/%s: %s (%s)", trackname, artist, bestImageURL, bestImageSize)
-	if bestImageURL == "" {
-		return "", nil
-	}
-
-	imgResp, err := http.Get(bestImageURL)
-	if err != nil {
-		return "", err
-	}
-	defer imgResp.Body.Close()
-
-	img, _, err := image.Decode(imgResp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	imgOut := salience.Crop(img, 460, 160)
-
-	fout, err := os.OpenFile(foutName, os.O_CREATE|os.O_WRONLY, 0666)
-	if err != nil {
-		applog.Errorf("Image job failed to open image file for writing: %s", err.Error())
-		return "", err
-	}
-
-	if err = png.Encode(fout, imgOut); err != nil {
-		applog.Errorf("Image job failed to encode image as PNG: %s", err.Error())
-		return "", err
-	}
-
-	return filename, nil
+	return bestImageURL, nil
 }
