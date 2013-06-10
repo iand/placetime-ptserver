@@ -5,11 +5,18 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/iand/feedparser"
+	"github.com/iand/lastfm"
+	"github.com/iand/salience"
 	"github.com/iand/spotify"
 	"github.com/placetime/datastore"
+	"image"
+	_ "image/jpeg"
+	"image/png"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path"
 	"time"
 )
 
@@ -227,15 +234,92 @@ func searchSpotifyTracks(srch string, pid datastore.PidType) ItemSearchResults {
 		return items
 	}
 
+	count := 0
 	if resp != nil {
 		applog.Debugf("Received %d items from spotify matching %s", len(resp.Tracks), srch)
 		for _, track := range resp.Tracks {
 			hasher := md5.New()
 			io.WriteString(hasher, track.URI)
 			id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
-			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: track.Name, Link: track.URI, Media: "audio"})
+
+			var imgPath string
+			if len(track.Artists) > 0 {
+				imgPath, _ = fetchTrackImage(track.Name, track.Artists[0].Name, id)
+			}
+
+			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: track.Name, Link: track.URI, Media: "audio", Image: imgPath})
+
+			count++
+			if count > 15 {
+				break
+			}
 		}
 	}
 	return items
 
+}
+
+func fetchTrackImage(trackname string, artist string, itemID datastore.ItemIdType) (string, error) {
+	filename := fmt.Sprintf("%s.png", itemID)
+	foutName := path.Join(config.Image.Path, filename)
+
+	if _, err := os.Stat(foutName); err == nil {
+		return filename, nil
+	}
+
+	lc := lastfm.New(config.Search.Lastfm.APIKey)
+	track, err := lc.TrackInfoByName(trackname, artist, "")
+	if err != nil {
+		return "", err
+	}
+
+	bestImageURL := ""
+	bestImageSize := ""
+	for _, img := range track.Album.Image {
+
+		if img.Size == "mega" {
+			bestImageURL = img.URL
+			break
+		}
+
+		if img.Size == "extralarge" ||
+			(img.Size == "large" && bestImageSize != "extralarge") ||
+			(img.Size == "medium" && bestImageSize != "extralarge" && bestImageSize != "large") ||
+			(img.Size == "small" && bestImageSize != "extralarge" && bestImageSize != "large" && bestImageSize != "medium") {
+			bestImageSize = img.Size
+			bestImageURL = img.URL
+		}
+
+	}
+
+	applog.Debugf("Best image for %s/%s: %s (%s)", trackname, artist, bestImageURL, bestImageSize)
+	if bestImageURL == "" {
+		return "", nil
+	}
+
+	imgResp, err := http.Get(bestImageURL)
+	if err != nil {
+		return "", err
+	}
+	defer imgResp.Body.Close()
+
+	img, _, err := image.Decode(imgResp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	imgOut := salience.Crop(img, 460, 160)
+
+	fout, err := os.OpenFile(foutName, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		applog.Errorf("Image job failed to open image file for writing: %s", err.Error())
+		return "", err
+	}
+
+	if err = png.Encode(fout, imgOut); err != nil {
+		applog.Errorf("Image job failed to encode image as PNG: %s", err.Error())
+		return "", err
+	}
+
+	return filename, nil
 }

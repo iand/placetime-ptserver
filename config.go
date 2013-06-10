@@ -38,6 +38,7 @@ type SearchConfig struct {
 	Timeout  int            `toml:"timeout"`
 	Eventful EventfulConfig `toml:"eventful"`
 	Songkick SongkickConfig `toml:"songkick"`
+	Lastfm   LastfmConfig   `toml:"lastm"`
 }
 
 type EventfulConfig struct {
@@ -46,6 +47,11 @@ type EventfulConfig struct {
 
 type SongkickConfig struct {
 	AppKey string `toml:"appkey"`
+}
+
+type LastfmConfig struct {
+	APIKey string `toml:"apikey"`
+	Secret string `toml:"secret"`
 }
 
 type TwitterConfig struct {
@@ -76,6 +82,10 @@ var (
 			},
 			Songkick: SongkickConfig{
 				AppKey: "KVAGcEtQWTuMJJUX",
+			},
+			Lastfm: LastfmConfig{
+				APIKey: "e8bc090bb831d109fcee1b1450e87bd3",
+				Secret: "646a5a3b50d83ee8d43a4085ec5cc9e7",
 			},
 		},
 		Twitter: TwitterConfig{
