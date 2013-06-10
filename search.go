@@ -9,10 +9,12 @@ import (
 	"github.com/iand/spotify"
 	"github.com/placetime/datastore"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"regexp"
 	"time"
 )
 
@@ -234,20 +236,33 @@ func searchSpotifyTracks(srch string, pid datastore.PidType) ItemSearchResults {
 	if resp != nil {
 		applog.Debugf("Received %d items from spotify matching %s", len(resp.Tracks), srch)
 		for _, track := range resp.Tracks {
-			hasher := md5.New()
-			io.WriteString(hasher, track.URI)
-			id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
-
-			var imgPath string
 			if len(track.Artists) > 0 {
-				imgPath, _ = fetchTrackImage(track.Name, track.Artists[0].Name, id)
-			}
+				hasher := md5.New()
+				io.WriteString(hasher, track.URI)
+				id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
 
-			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: track.Name, Link: track.URI, Media: "audio", Image: imgPath})
+				artist := track.Artists[0].Name
 
-			count++
-			if count > 15 {
-				break
+				var imgPath string
+				imgPath = fetchTrackImage(track.URI)
+
+				text := fmt.Sprintf("%s / %s", track.Name, artist)
+
+				items = append(items, &datastore.Item{
+					Id:       id,
+					Pid:      datastore.PidType(artist),
+					Event:    0,
+					Text:     text,
+					Link:     track.URI,
+					Media:    "audio",
+					Image:    imgPath,
+					Duration: int(track.Length),
+				})
+
+				count++
+				if count > 15 {
+					break
+				}
 			}
 		}
 	}
@@ -255,7 +270,46 @@ func searchSpotifyTracks(srch string, pid datastore.PidType) ItemSearchResults {
 
 }
 
-func fetchTrackImage(trackname string, artist string, itemID datastore.ItemIdType) (string, error) {
+// spotify:track:24H5KPBdSvHQMRXTp12K3J
+// http://open.spotify.com/track/24H5KPBdSvHQMRXTp12K3J
+
+func fetchTrackImage(spotifyURL string) string {
+	if len(spotifyURL) < 36 {
+		return ""
+	}
+	hash := spotifyURL[14:]
+
+	pageUrl := fmt.Sprintf("http://open.spotify.com/track/%s", hash)
+	// applog.Debugf("Fetching spotify page %s", pageUrl)
+
+	resp, err := http.Get(pageUrl)
+	if err != nil {
+		applog.Errorf("Fetch of spotify page %s got http error %s", pageUrl, err.Error())
+		return ""
+	}
+
+	defer resp.Body.Close()
+
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		applog.Errorf("Read of spotify page %s got io error %s", pageUrl, err.Error())
+		return ""
+	}
+
+	re, err := regexp.Compile(`"(http://o\.scdn\.co/300/[A-Za-z0-9]+)"`)
+	if err != nil {
+		return ""
+	}
+
+	matches := re.FindAllSubmatch(content, -1)
+	if len(matches) > 0 {
+		return string(matches[0][1])
+	}
+
+	return ""
+}
+
+func fetchTrackImageLastfm(trackname string, artist string, itemID datastore.ItemIdType) (string, error) {
 	filename := fmt.Sprintf("%s.png", itemID)
 	foutName := path.Join(config.Image.Path, filename)
 
