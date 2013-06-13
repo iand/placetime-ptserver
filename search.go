@@ -4,6 +4,7 @@ import (
 	"cgl.tideland.biz/applog"
 	"crypto/md5"
 	"fmt"
+	"github.com/iand/eventful"
 	"github.com/iand/feedparser"
 	"github.com/iand/lastfm"
 	"github.com/iand/spotify"
@@ -12,7 +13,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -196,36 +196,38 @@ func searchYoutubeVidoes(srch string, pid datastore.PidType) ItemSearchResults {
 func searchEventfulEvents(srch string, pid datastore.PidType) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
-	url := fmt.Sprintf("http://api.eventful.com/rest/events/rss?app_key=%s&date=Future&keywords=%s", url.QueryEscape(config.Search.Eventful.AppKey), url.QueryEscape(srch))
+	c := eventful.New(config.Search.Eventful.AppKey)
 
-	applog.Debugf("Fetching %s", url)
-
-	resp, err := http.Get(url)
-
+	results, err := c.SearchEvents(srch, "Future")
 	if err != nil {
-		applog.Errorf("Fetch of feed got http error  %s", err.Error())
+		applog.Errorf("Fetch of events got error  %s", err.Error())
 		return items
 	}
 
-	defer resp.Body.Close()
-	applog.Debugf("Response %s", resp.Status)
+	applog.Debugf("Received %d items from eventful matching %s", len(results.Events), srch)
+	for _, event := range results.Events {
+		hasher := md5.New()
+		io.WriteString(hasher, event.ID)
+		id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
 
-	feed, err := feedparser.NewFeed(resp.Body)
-
-	if err != nil {
-		applog.Errorf("Fetch of feed got http error  %s", err.Error())
-		return items
-
-	}
-
-	if feed != nil {
-		applog.Debugf("Received %d items from eventful matching %s", len(feed.Items), srch)
-		for _, item := range feed.Items {
-			hasher := md5.New()
-			io.WriteString(hasher, item.Id)
-			id := datastore.ItemIdType(fmt.Sprintf("%x", hasher.Sum(nil)))
-			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: datastore.FakeEventPrecision(item.When), Text: item.Title, Link: item.Link, Media: "event", Image: item.Image})
+		imgURL := ""
+		if event.Image != nil && event.Image.Medium != nil {
+			imgURL = event.Image.Medium.URL
 		}
+
+		duration := 0
+		startTime, err := time.Parse("2006-01-02 15:04:05", event.StartTime)
+		if err != nil {
+			startTime = time.Unix(0, 0)
+		} else {
+			stopTime, err := time.Parse("2006-01-02 15:04:05", event.StopTime)
+			if err == nil {
+				duration = int(stopTime.Sub(startTime).Seconds())
+			}
+
+		}
+
+		items = append(items, &datastore.Item{Id: id, Pid: pid, Event: datastore.FakeEventPrecision(startTime), Text: event.Title, Link: event.URL, Media: "event", Image: imgURL, Duration: duration})
 	}
 	return items
 
