@@ -39,10 +39,21 @@ type SearchConfig struct {
 	Eventful EventfulConfig `toml:"eventful"`
 	Songkick SongkickConfig `toml:"songkick"`
 	Lastfm   LastfmConfig   `toml:"lastm"`
+	Spotify  SpotifyConfig  `toml:"spotify"`
+	Youtube  YoutubeConfig  `toml:"youtube"`
 }
 
 type EventfulConfig struct {
 	AppKey string `toml:"appkey"`
+	Pid    string `toml:"pid"`
+}
+
+type YoutubeConfig struct {
+	Pid string `toml:"pid"`
+}
+
+type SpotifyConfig struct {
+	Pid string `toml:"pid"`
 }
 
 type SongkickConfig struct {
@@ -79,6 +90,7 @@ var (
 			Timeout:  15000,
 			Eventful: EventfulConfig{
 				AppKey: "h6xD8gZFzDK5m498",
+				Pid:    "eventful",
 			},
 			Songkick: SongkickConfig{
 				AppKey: "KVAGcEtQWTuMJJUX",
@@ -86,6 +98,12 @@ var (
 			Lastfm: LastfmConfig{
 				APIKey: "e8bc090bb831d109fcee1b1450e87bd3",
 				Secret: "646a5a3b50d83ee8d43a4085ec5cc9e7",
+			},
+			Youtube: YoutubeConfig{
+				Pid: "youtube",
+			},
+			Spotify: SpotifyConfig{
+				Pid: "spotify",
 			},
 		},
 		Twitter: TwitterConfig{

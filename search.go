@@ -26,7 +26,7 @@ type ProfileSearchResults []*datastore.Profile
 
 type ItemSearchResults []*datastore.Item
 
-type SearchFunc func(srch string, pid datastore.PidType) ItemSearchResults
+type SearchFunc func(srch string) ItemSearchResults
 
 func ProfileSearch(srch string) SearchResults {
 	s := datastore.NewRedisStore()
@@ -44,7 +44,7 @@ func ItemSearch(srch string, pid datastore.PidType) SearchResults {
 		searchSpotifyTracks,
 	}
 
-	return MultiplexedSearch(srch, pid, searches)
+	return MultiplexedSearch(srch, searches)
 }
 
 func VideoSearch(srch string, pid datastore.PidType) SearchResults {
@@ -53,7 +53,7 @@ func VideoSearch(srch string, pid datastore.PidType) SearchResults {
 		searchYoutubeVidoes,
 	}
 
-	return MultiplexedSearch(srch, pid, searches)
+	return MultiplexedSearch(srch, searches)
 }
 
 func AudioSearch(srch string, pid datastore.PidType) SearchResults {
@@ -62,7 +62,7 @@ func AudioSearch(srch string, pid datastore.PidType) SearchResults {
 		searchSpotifyTracks,
 	}
 
-	return MultiplexedSearch(srch, pid, searches)
+	return MultiplexedSearch(srch, searches)
 }
 
 func EventSearch(srch string, pid datastore.PidType) SearchResults {
@@ -71,16 +71,16 @@ func EventSearch(srch string, pid datastore.PidType) SearchResults {
 		searchEventfulEvents,
 	}
 
-	return MultiplexedSearch(srch, pid, searches)
+	return MultiplexedSearch(srch, searches)
 }
 
-func MultiplexedSearch(srch string, pid datastore.PidType, searches []SearchFunc) SearchResults {
+func MultiplexedSearch(srch string, searches []SearchFunc) SearchResults {
 	results := make(ItemSearchResults, 0)
 
 	items := make(chan ItemSearchResults)
 
 	for _, f := range searches {
-		go func() { items <- f(srch, pid) }()
+		go func() { items <- f(srch) }()
 	}
 
 	lists := make([]ItemSearchResults, 0)
@@ -113,7 +113,7 @@ func MultiplexedSearch(srch string, pid datastore.PidType, searches []SearchFunc
 
 }
 
-func searchYoutubeVidoes(srch string, pid datastore.PidType) ItemSearchResults {
+func searchYoutubeVidoes(srch string) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
 	c := youtube.New()
@@ -151,14 +151,14 @@ func searchYoutubeVidoes(srch string, pid datastore.PidType) ItemSearchResults {
 				}
 			}
 
-			items = append(items, &datastore.Item{Id: id, Pid: pid, Event: 0, Text: item.Title.Value, Link: url, Media: "video", Image: bestImage, Duration: item.Media.Duration.Seconds})
+			items = append(items, &datastore.Item{Id: id, Pid: datastore.PidType(config.Search.Youtube.Pid), Event: 0, Text: item.Title.Value, Link: url, Media: "video", Image: bestImage, Duration: item.Media.Duration.Seconds})
 		}
 	}
 	return items
 
 }
 
-func searchEventfulEvents(srch string, pid datastore.PidType) ItemSearchResults {
+func searchEventfulEvents(srch string) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
 	c := eventful.New(config.Search.Eventful.AppKey)
@@ -192,13 +192,13 @@ func searchEventfulEvents(srch string, pid datastore.PidType) ItemSearchResults 
 
 		}
 
-		items = append(items, &datastore.Item{Id: id, Pid: pid, Event: datastore.FakeEventPrecision(startTime), Text: event.Title, Link: event.URL, Media: "event", Image: imgURL, Duration: duration})
+		items = append(items, &datastore.Item{Id: id, Pid: datastore.PidType(config.Search.Eventful.Pid), Event: datastore.FakeEventPrecision(startTime), Text: event.Title, Link: event.URL, Media: "event", Image: imgURL, Duration: duration})
 	}
 	return items
 
 }
 
-func searchSpotifyTracks(srch string, pid datastore.PidType) ItemSearchResults {
+func searchSpotifyTracks(srch string) ItemSearchResults {
 	items := make([]*datastore.Item, 0)
 
 	client := spotify.New()
@@ -227,7 +227,7 @@ func searchSpotifyTracks(srch string, pid datastore.PidType) ItemSearchResults {
 
 				items = append(items, &datastore.Item{
 					Id:       id,
-					Pid:      datastore.PidType(artist),
+					Pid:      datastore.PidType(config.Search.Spotify.Pid),
 					Event:    0,
 					Text:     text,
 					Link:     track.URI,

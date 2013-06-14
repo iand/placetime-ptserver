@@ -714,6 +714,7 @@ func promoteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := datastore.ItemIdType(r.FormValue("id"))
+
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
