@@ -1024,12 +1024,11 @@ func removeProfileHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !isAdmin(sessionPid) {
+	pid := datastore.PidType(r.FormValue("pid"))
+	if pid != sessionPid && !isAdmin(sessionPid) {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
-
-	pid := datastore.PidType(r.FormValue("pid"))
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
