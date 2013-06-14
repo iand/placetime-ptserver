@@ -5,7 +5,6 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/iand/eventful"
-	"github.com/iand/feedparser"
 	"github.com/iand/lastfm"
 	"github.com/iand/spotify"
 	"github.com/iand/youtube"
@@ -111,40 +110,6 @@ func MultiplexedSearch(srch string, pid datastore.PidType, searches []SearchFunc
 	}
 
 	return SearchResults{Results: results}
-
-}
-
-func searchYoutubeChannels(srch string, pid datastore.PidType) ProfileSearchResults {
-	plist := make([]*datastore.Profile, 0)
-
-	url := fmt.Sprintf("https://gdata.youtube.com/feeds/api/channels?q=%s&v=2", srch)
-	resp, err := http.Get(url)
-
-	if err != nil {
-		applog.Errorf("Fetch of feed got http error  %s", err.Error())
-		return plist
-	}
-
-	defer resp.Body.Close()
-
-	feed, err := feedparser.NewFeed(resp.Body)
-
-	if err != nil {
-		applog.Errorf("Fetch of feed got http error  %s", err.Error())
-		return plist
-
-	}
-
-	_ = feed
-	//items := itemsFromFeed("fakepid", feed)
-
-	// for _, item := range items {
-	// 	log.Printf("%s", item)
-
-	// 	//		s.AddItem(item.Pid, time.Unix(item.Event, 0), item.Text, item.Link, item.Image, item.Id)
-	// }
-
-	return plist
 
 }
 
