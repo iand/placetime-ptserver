@@ -106,6 +106,7 @@ func main() {
 	r.HandleFunc("/-tremprofile", removeProfileHandler).Methods("POST")
 	r.HandleFunc("/-tflagprofile", flagProfileHandler).Methods("POST")
 
+	r.HandleFunc("/-ping", pingHandler).Methods("GET")
 	r.HandleFunc("/-session", sessionHandler).Methods("POST")
 	r.HandleFunc("/-chksession", checkSessionHandler).Methods("GET")
 	r.HandleFunc("/-twitter", twitterHandler).Methods("GET")
@@ -1378,4 +1379,8 @@ func OauthService() *oauth1a.Service {
 		},
 		Signer: new(oauth1a.HmacSha1Signer),
 	}
+}
+
+func pingHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprint(w, "PONG")
 }
