@@ -1382,5 +1382,5 @@ func OauthService() *oauth1a.Service {
 }
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "PONG!")
+	fmt.Fprint(w, "PONG")
 }
