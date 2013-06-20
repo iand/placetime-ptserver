@@ -25,6 +25,7 @@ type SearchResults struct {
 type ProfileSearchResults []*datastore.Profile
 
 type ItemSearchResults []*datastore.Item
+type FormattedItemSearchResults []*datastore.FormattedItem
 
 type SearchFunc func(srch string) ItemSearchResults
 

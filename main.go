@@ -1286,9 +1286,19 @@ func jsonSearchHandler(w http.ResponseWriter, r *http.Request) {
 			s := datastore.NewRedisStore()
 			defer s.Close()
 
+			fitems := make(FormattedItemSearchResults, 0)
+
 			for _, item := range items {
 				s.SaveItem(item, config.Search.Lifetime)
+
+				fitem, err := s.FormatItem(item, 0, item.Pid)
+				if err != nil {
+					continue
+				}
+				fitems = append(fitems, fitem)
 			}
+
+			result.Results = fitems
 		}
 
 	}
