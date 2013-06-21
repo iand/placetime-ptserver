@@ -582,17 +582,17 @@ func initData() {
 	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "", "", "", "", "", "")
 
 	applog.Infof("Adding items for nasa")
-	s.AddItem("@nasa", parseKnownTime("1 Jan 2015"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("26 Aug 2012"), "Dawn - Leaves asteroid Vesta, heads for asteroid 1 Ceres", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("1 Sep 2012"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("1 Feb 2015"), "Dawn - Goes into orbit around asteroid 1 Ceres", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("14 Jul 2015"), "New Horizons - NASA mission reaches Pluto and Charon", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("1 Mar 2013"), "LADEE - Launch of NASA Orbiter to the Moon", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("1 Nov 2014"), "Philae - ESA Rosetta Lander touches down on Comet Churyumov-Gerasimenko", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("1 Nov 2013"), "MAVEN - Launch of Mars Orbiter", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("1 May 2014"), "Rosetta - ESA mission reaches Comet Churyumov-Gerasimenko", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("1 Jan 2014"), "Mars Sample Return Mission - Launch of NASA sample return mission to Mars", "", "", "", "")
-	s.AddItem("@nasa", parseKnownTime("5 Apr 2231"), "Pluto - is passed by Neptune in distance from the Sun for the next 20 years", "", "", "", "")
+	s.AddItem("@nasa", parseKnownTime("1 Jan 2015"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("26 Aug 2012"), "Dawn - Leaves asteroid Vesta, heads for asteroid 1 Ceres", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("1 Sep 2012"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("1 Feb 2015"), "Dawn - Goes into orbit around asteroid 1 Ceres", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("14 Jul 2015"), "New Horizons - NASA mission reaches Pluto and Charon", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("1 Mar 2013"), "LADEE - Launch of NASA Orbiter to the Moon", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("1 Nov 2014"), "Philae - ESA Rosetta Lander touches down on Comet Churyumov-Gerasimenko", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("1 Nov 2013"), "MAVEN - Launch of Mars Orbiter", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("1 May 2014"), "Rosetta - ESA mission reaches Comet Churyumov-Gerasimenko", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("1 Jan 2014"), "Mars Sample Return Mission - Launch of NASA sample return mission to Mars", "", "", "", "", 0)
+	s.AddItem("@nasa", parseKnownTime("5 Apr 2231"), "Pluto - is passed by Neptune in distance from the Sun for the next 20 years", "", "", "", "", 0)
 
 	applog.Infof("Adding profile for @visitlondon")
 	err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "", "", "", "", "", "")
@@ -681,6 +681,13 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	ets := r.FormValue("ets")
 	image := r.FormValue("image")
 	media := r.FormValue("media")
+	durationStr := r.FormValue("duration")
+
+	duration, err := strconv.ParseInt(durationStr, 10, 32)
+	if err != nil {
+		ErrorResponse(w, r, fmt.Errorf("Duration was not an integer"))
+		return
+	}
 
 	applog.Debugf("Adding item pid: %s, text: %s, link: %s, ets: %v, image: %s, media: %s", pid, text, link, ets, image, media)
 
@@ -695,7 +702,7 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	itemid, err := s.AddItem(pid, etsParsed, text, link, image, "", media)
+	itemid, err := s.AddItem(pid, etsParsed, text, link, image, "", media, int(duration))
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
