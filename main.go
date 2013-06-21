@@ -683,10 +683,14 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	media := r.FormValue("media")
 	durationStr := r.FormValue("duration")
 
-	duration, err := strconv.ParseInt(durationStr, 10, 32)
-	if err != nil {
-		ErrorResponse(w, r, fmt.Errorf("Duration was not an integer"))
-		return
+	var duration int64
+	var err error
+	if durationStr != "" {
+		duration, err = strconv.ParseInt(durationStr, 10, 32)
+		if err != nil {
+			ErrorResponse(w, r, fmt.Errorf("Duration was not an integer"))
+			return
+		}
 	}
 
 	applog.Debugf("Adding item pid: %s, text: %s, link: %s, ets: %v, image: %s, media: %s", pid, text, link, ets, image, media)
