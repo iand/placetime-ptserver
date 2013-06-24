@@ -711,7 +711,8 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		ErrorResponse(w, r, err)
 		return
 	}
-	fmt.Fprintf(w, "ACK. (itemid=%s)", itemid)
+
+	itemResponse(itemid, pid, w, r)
 }
 
 func promoteHandler(w http.ResponseWriter, r *http.Request) {
@@ -737,25 +738,7 @@ func promoteHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	item, err := s.Item(id)
-	if err != nil {
-		ErrorResponse(w, r, err)
-		return
-	}
-
-	items, err := s.ItemInTimeline(item, pid, "m")
-	if err != nil {
-		ErrorResponse(w, r, err)
-		return
-	}
-
-	json, err := json.MarshalIndent(items, "", "  ")
-	if err != nil {
-		ErrorResponse(w, r, err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/javascript")
-	w.Write(json)
+	itemResponse(id, pid, w, r)
 
 }
 
@@ -1404,4 +1387,29 @@ func OauthService() *oauth1a.Service {
 
 func pingHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "PONG")
+}
+
+func itemResponse(id datastore.ItemIdType, pid datastore.PidType, w http.ResponseWriter, r *http.Request) {
+	s := datastore.NewRedisStore()
+	defer s.Close()
+
+	item, err := s.Item(id)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	items, err := s.ItemInTimeline(item, pid, "m")
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	json, err := json.MarshalIndent(items, "", "  ")
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Write(json)
 }
