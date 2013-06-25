@@ -44,6 +44,7 @@ var (
 )
 
 type GeoLocation struct {
+	IPAddr      string  `json:"ip"`
 	CountryCode string  `json:"countrycode"`
 	CountryName string  `json:"countryname"`
 	Region      string  `json:"region"`
@@ -1441,17 +1442,25 @@ func jsonGeoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ipAddr := r.FormValue("ip")
-	loc := cityDb.GetLocationByIP(ipAddr)
+
+	if ipAddr == "" {
+		ipAddr = strings.Split(r.RemoteAddr, ":")[0]
+	}
 
 	locformatted := GeoLocation{
+		IPAddr: ipAddr,
+	}
 
-		CountryCode: loc.CountryCode,
-		CountryName: loc.CountryName,
-		Region:      loc.Region,
-		City:        loc.City,
-		PostalCode:  loc.PostalCode,
-		Latitude:    loc.Latitude,
-		Longitude:   loc.Longitude,
+	loc := cityDb.GetLocationByIP(ipAddr)
+
+	if loc != nil {
+		locformatted.CountryCode = loc.CountryCode
+		locformatted.CountryName = loc.CountryName
+		locformatted.Region = loc.Region
+		locformatted.City = loc.City
+		locformatted.PostalCode = loc.PostalCode
+		locformatted.Latitude = loc.Latitude
+		locformatted.Longitude = loc.Longitude
 	}
 
 	json, err := json.MarshalIndent(locformatted, "", "  ")
