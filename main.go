@@ -1448,9 +1448,9 @@ func jsonGeoHandler(w http.ResponseWriter, r *http.Request) {
 		if v, exists := r.Header["x-forwarded-for"]; exists {
 			ipAddr = v[0]
 		} else {
+			ipAddr = strings.Split(r.RemoteAddr, ":")[0]
 
 		}
-		ipAddr = strings.Split(r.RemoteAddr, ":")[0]
 	}
 
 	locformatted := GeoLocation{
