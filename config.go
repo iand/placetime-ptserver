@@ -15,6 +15,7 @@ type Config struct {
 	Datastore datastore.Config `toml:"datastore"`
 	Search    SearchConfig     `toml:"search"`
 	Twitter   TwitterConfig    `toml:"twitter"`
+	Geo       GeoConfig        `toml:"geo"`
 }
 
 type WebConfig struct {
@@ -70,6 +71,10 @@ type TwitterConfig struct {
 	OAuthConsumerSecret string `toml:"consumersecret"`
 }
 
+type GeoConfig struct {
+	CityDb string `toml:"citydb"`
+}
+
 var (
 	DefaultConfig Config = Config{
 		Web: WebConfig{
@@ -109,6 +114,9 @@ var (
 		Twitter: TwitterConfig{
 			OAuthConsumerKey:    "Fnky4HZ8z4NsOxRniTvCA",
 			OAuthConsumerSecret: "iv9q7CTYfrls05eFlhyEkPpHcJqseSWpbDx8GIyGvg",
+		},
+		Geo: GeoConfig{
+			CityDb: "data/GeoLiteCity.dat",
 		},
 	}
 )
@@ -176,7 +184,7 @@ func checkEnvironment() {
 		os.Exit(1)
 	}
 
-	f, err = os.Open(config.Image.Path)
+	f, err = os.Open(config.Web.Path)
 	if err != nil {
 		applog.Errorf("Could not open web assets path %s: %s", config.Web.Path, err.Error())
 		os.Exit(1)
@@ -191,6 +199,23 @@ func checkEnvironment() {
 
 	if !fi.IsDir() {
 		applog.Errorf("Web assets path is not a directory %s: %s", config.Web.Path, err.Error())
+		os.Exit(1)
+	}
+
+	f, err = os.Open(config.Geo.CityDb)
+	if err != nil {
+		applog.Errorf("Could not open city database %s: %s", config.Geo.CityDb, err.Error())
+		os.Exit(1)
+	}
+	defer f.Close()
+	fi, err = f.Stat()
+	if err != nil {
+		applog.Errorf("Could not stat city database %s: %s", config.Geo.CityDb, err.Error())
+		os.Exit(1)
+	}
+
+	if !fi.Mode().IsRegular() {
+		applog.Errorf("City databas path is not a file %s: %s", config.Geo.CityDb, err.Error())
 		os.Exit(1)
 	}
 

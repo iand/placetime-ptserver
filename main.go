@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/kurrik/oauth1a"
 	"github.com/kurrik/twittergo"
+	"github.com/nranchev/go-libGeoIP"
 	"github.com/placetime/datastore"
 	"github.com/rcrowley/goagain"
 	"html/template"
@@ -39,7 +40,18 @@ var (
 	templatesDir      = "./templates"
 	newUserCookieName = "ptnewuser"
 	doinit            = false
+	cityDb            *libgeo.GeoIP
 )
+
+type GeoLocation struct {
+	CountryCode string  `json:"countrycode"`
+	CountryName string  `json:"countryname"`
+	Region      string  `json:"region"`
+	City        string  `json:"city"`
+	PostalCode  string  `json:"postalcode"`
+	Latitude    float32 `json:"latitude"`
+	Longitude   float32 `json:"longitude"`
+}
 
 // TODO: Look into https://github.com/PuerkitoBio/ghost
 // TODO: https://github.com/craigmj/gototp
@@ -93,6 +105,7 @@ func main() {
 	r.HandleFunc("/-jfeeds", jsonFeedsHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/-jflaggedprofiles", jsonFlaggedProfilesHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/-jsearch", jsonSearchHandler).Methods("GET", "HEAD")
+	r.HandleFunc("/-jgeo", jsonGeoHandler).Methods("GET", "HEAD")
 
 	r.HandleFunc("/-tfollow", followHandler).Methods("POST")
 	r.HandleFunc("/-tunfollow", unfollowHandler).Methods("POST")
@@ -181,8 +194,15 @@ func Configure() {
 
 	datastore.InitRedisStore(config.Datastore)
 
+	var err error
+	cityDb, err = libgeo.Load(config.Geo.CityDb)
+	if err != nil {
+		applog.Errorf("Error while opening citydb: %s", err.Error())
+		os.Exit(1)
+	}
 	applog.Infof("Assets directory: %s", config.Web.Path)
 	applog.Infof("Image directory: %s", config.Image.Path)
+	applog.Infof("City database: %s", config.Geo.CityDb)
 
 }
 
@@ -1406,6 +1426,35 @@ func itemResponse(id datastore.ItemIdType, pid datastore.PidType, w http.Respons
 	}
 
 	json, err := json.MarshalIndent(items, "", "  ")
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Write(json)
+}
+
+func jsonGeoHandler(w http.ResponseWriter, r *http.Request) {
+	sessionValid, _ := checkSession(w, r, false)
+	if !sessionValid {
+		return
+	}
+
+	ipAddr := r.FormValue("ip")
+	loc := cityDb.GetLocationByIP(ipAddr)
+
+	locformatted := GeoLocation{
+
+		CountryCode: loc.CountryCode,
+		CountryName: loc.CountryName,
+		Region:      loc.Region,
+		City:        loc.City,
+		PostalCode:  loc.PostalCode,
+		Latitude:    loc.Latitude,
+		Longitude:   loc.Longitude,
+	}
+
+	json, err := json.MarshalIndent(locformatted, "", "  ")
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
