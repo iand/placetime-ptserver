@@ -116,7 +116,7 @@ var (
 			OAuthConsumerSecret: "iv9q7CTYfrls05eFlhyEkPpHcJqseSWpbDx8GIyGvg",
 		},
 		Geo: GeoConfig{
-			CityDb: "data/GeoLiteCity.dat",
+			CityDb: "./data/GeoLiteCity.dat",
 		},
 	}
 )
