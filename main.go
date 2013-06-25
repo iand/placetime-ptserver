@@ -1446,7 +1446,7 @@ func jsonGeoHandler(w http.ResponseWriter, r *http.Request) {
 	if ipAddr == "" {
 
 		for k, _ := range r.Header {
-			logapp.Debugf("header: %s", k)
+			applog.Debugf("header: %s", k)
 		}
 
 		if v, exists := r.Header["x-forwarded-for"]; exists {
