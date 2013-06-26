@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/iand/imgpick"
 	"github.com/kurrik/oauth1a"
 	"github.com/kurrik/twittergo"
 	"github.com/nranchev/go-libGeoIP"
@@ -107,6 +108,7 @@ func main() {
 	r.HandleFunc("/-jflaggedprofiles", jsonFlaggedProfilesHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/-jsearch", jsonSearchHandler).Methods("GET", "HEAD")
 	r.HandleFunc("/-jgeo", jsonGeoHandler).Methods("GET", "HEAD")
+	r.HandleFunc("/-jdetect", jsonDetectHandler).Methods("GET", "HEAD")
 
 	r.HandleFunc("/-tfollow", followHandler).Methods("POST")
 	r.HandleFunc("/-tunfollow", unfollowHandler).Methods("POST")
@@ -1476,4 +1478,39 @@ func jsonGeoHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/javascript")
 	w.Write(json)
+}
+
+func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	_, exists := r.Form["url"]
+	if !exists {
+		ErrorResponse(w, r, errors.New("url parameter is required"))
+		return
+	}
+
+	url := r.FormValue("url")
+
+	applog.Debugf("Url: %s", url)
+
+	_, imageurl, mediaurl, err := imgpick.PickImage(url)
+
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+
+	type DetectionResult struct {
+		url   string
+		image string
+		media string
+	}
+
+	json, err := json.MarshalIndent(DetectionResult{url: url, image: imageurl, media: mediaurl}, "", "  ")
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/javascript")
+	w.Write(json)
+
 }
