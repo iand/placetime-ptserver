@@ -3,6 +3,7 @@ package main
 import (
 	"cgl.tideland.biz/applog"
 	"code.google.com/p/gorilla/mux"
+	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -10,12 +11,15 @@ import (
 	"flag"
 	"fmt"
 	"github.com/iand/imgpick"
+	"github.com/iand/salience"
 	"github.com/kurrik/oauth1a"
 	"github.com/kurrik/twittergo"
 	"github.com/nranchev/go-libGeoIP"
 	"github.com/placetime/datastore"
 	"github.com/rcrowley/goagain"
 	"html/template"
+	"image/png"
+	"io"
 	"io/ioutil"
 	mr "math/rand"
 	"net"
@@ -1489,23 +1493,65 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	url := r.FormValue("url")
+	best := r.FormValue("best")
 
-	applog.Debugf("Url: %s", url)
+	println(url)
 
-	_, imageurl, mediaurl, err := imgpick.PickImage(url)
+	mediaUrl, imageUrls, err := imgpick.FindMedia(url)
 
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
 	}
 
-	type DetectionResult struct {
-		url   string
-		image string
-		media string
+	var bestImageFilename string
+
+	if best == "1" {
+		img, err := imgpick.SelectBestImage(url, imageUrls)
+
+		if img == nil || err != nil {
+			ErrorResponse(w, r, err)
+			return
+		}
+
+		imgOut := salience.Crop(img, 460, 160)
+
+		hasher := md5.New()
+		io.WriteString(hasher, url)
+		id := fmt.Sprintf("%x", hasher.Sum(nil))
+
+		bestImageFilename = fmt.Sprintf("%s.png", id)
+
+		foutName := path.Join(config.Image.Path, bestImageFilename)
+
+		fout, err := os.OpenFile(foutName, os.O_CREATE|os.O_WRONLY, 0666)
+		if err != nil {
+			ErrorResponse(w, r, err)
+			return
+		}
+
+		if err = png.Encode(fout, imgOut); err != nil {
+			ErrorResponse(w, r, err)
+			return
+		}
+
 	}
 
-	json, err := json.MarshalIndent(DetectionResult{url: url, image: imageurl, media: mediaurl}, "", "  ")
+	type DetectionResult struct {
+		Url       string   `json:"url"`
+		Images    []string `json:"images"`
+		Media     string   `json:"media"`
+		BestImage string   `json:"bestImage"`
+	}
+
+	data := DetectionResult{
+		Url:       url,
+		Images:    imageUrls,
+		Media:     mediaUrl,
+		BestImage: bestImageFilename,
+	}
+
+	json, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
