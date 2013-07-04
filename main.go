@@ -1504,17 +1504,27 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type DetectionResult struct {
+		Url        string              `json:"url"`
+		Images     []string            `json:"images,omitempty"`
+		Alternates []imgpick.ImageInfo `json:"alternates,omitempty"`
+		Media      string              `json:"media"`
+		BestImage  string              `json:"bestImage"`
+	}
+
+	var data DetectionResult
+
 	var bestImageFilename string
 
 	if best == "1" {
-		img, err := imgpick.SelectBestImage(url, imageUrls)
+		best, images, err := imgpick.SelectBestImage(url, imageUrls)
 
-		if img == nil || err != nil {
+		if best.Img == nil || err != nil {
 			ErrorResponse(w, r, err)
 			return
 		}
 
-		imgOut := salience.Crop(img, 460, 160)
+		imgOut := salience.Crop(best.Img, 460, 160)
 
 		hasher := md5.New()
 		io.WriteString(hasher, url)
@@ -1535,20 +1545,28 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-	}
+		filteredImages := make([]imgpick.ImageInfo, 0)
+		for _, i := range images {
+			if i.Url != best.Url {
+				filteredImages = append(filteredImages, i)
+			}
+		}
 
-	type DetectionResult struct {
-		Url       string   `json:"url"`
-		Images    []string `json:"images"`
-		Media     string   `json:"media"`
-		BestImage string   `json:"bestImage"`
-	}
+		data = DetectionResult{
+			Url:        url,
+			Alternates: filteredImages,
+			Media:      mediaUrl,
+			BestImage:  bestImageFilename,
+		}
 
-	data := DetectionResult{
-		Url:       url,
-		Images:    imageUrls,
-		Media:     mediaUrl,
-		BestImage: bestImageFilename,
+	} else {
+
+		data = DetectionResult{
+			Url:       url,
+			Images:    imageUrls,
+			Media:     mediaUrl,
+			BestImage: bestImageFilename,
+		}
 	}
 
 	json, err := json.MarshalIndent(data, "", "  ")
