@@ -1497,7 +1497,7 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 
 	println(url)
 
-	mediaUrl, imageUrls, err := imgpick.FindMedia(url)
+	mediaUrl, title, imageUrls, err := imgpick.FindMedia(url)
 
 	if err != nil {
 		ErrorResponse(w, r, err)
@@ -1505,6 +1505,7 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type DetectionResult struct {
+		Title      string              `json:"title"`
 		Url        string              `json:"url"`
 		Images     []string            `json:"images,omitempty"`
 		Alternates []imgpick.ImageInfo `json:"alternates,omitempty"`
@@ -1553,6 +1554,7 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		data = DetectionResult{
+			Title:      title,
 			Url:        url,
 			Alternates: filteredImages,
 			Media:      mediaUrl,
@@ -1562,6 +1564,7 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 
 		data = DetectionResult{
+			Title:     title,
 			Url:       url,
 			Images:    imageUrls,
 			Media:     mediaUrl,
