@@ -592,71 +592,71 @@ func initData() {
 	applog.Infof("Resetting database")
 	s.ResetAll()
 
-	applog.Infof("Adding profile for @iand")
-	err := s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "", "nospam@iandavis.com", "", "", "", "", "")
-	if err != nil {
-		applog.Errorf("Could not add profile for @iand: %s", err.Error())
-	}
+	// applog.Infof("Adding profile for @iand")
+	// err := s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "", "nospam@iandavis.com", "", "", "", "", "")
+	// if err != nil {
+	// 	applog.Errorf("Could not add profile for @iand: %s", err.Error())
+	// }
+	// s.AddSuggestedProfile("@iand", "london")
 
-	applog.Infof("Adding profile for @daveg")
-	err = s.AddProfile("@daveg", "sunshine", "Dave", "", "", "", "", "", "", "", "", "")
-	if err != nil {
-		applog.Errorf("Could not add profile for @daveg: %s", err.Error())
-	}
-	s.AddSuggestedProfile("@iand", "london")
+	// applog.Infof("Adding profile for @daveg")
+	// err = s.AddProfile("@daveg", "sunshine", "Dave", "", "", "", "", "", "", "", "", "")
+	// if err != nil {
+	// 	applog.Errorf("Could not add profile for @daveg: %s", err.Error())
+	// }
 
-	applog.Infof("Adding profile for @nasa")
-	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "", "", "", "", "", "")
+	// applog.Infof("Adding profile for @nasa")
+	// s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "", "", "", "", "", "")
 
-	applog.Infof("Adding items for nasa")
-	s.AddItem("@nasa", parseKnownTime("1 Jan 2015"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("26 Aug 2012"), "Dawn - Leaves asteroid Vesta, heads for asteroid 1 Ceres", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("1 Sep 2012"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("1 Feb 2015"), "Dawn - Goes into orbit around asteroid 1 Ceres", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("14 Jul 2015"), "New Horizons - NASA mission reaches Pluto and Charon", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("1 Mar 2013"), "LADEE - Launch of NASA Orbiter to the Moon", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("1 Nov 2014"), "Philae - ESA Rosetta Lander touches down on Comet Churyumov-Gerasimenko", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("1 Nov 2013"), "MAVEN - Launch of Mars Orbiter", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("1 May 2014"), "Rosetta - ESA mission reaches Comet Churyumov-Gerasimenko", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("1 Jan 2014"), "Mars Sample Return Mission - Launch of NASA sample return mission to Mars", "", "", "", "", 0)
-	s.AddItem("@nasa", parseKnownTime("5 Apr 2231"), "Pluto - is passed by Neptune in distance from the Sun for the next 20 years", "", "", "", "", 0)
+	// applog.Infof("Adding items for nasa")
+	// s.AddItem("@nasa", parseKnownTime("1 Jan 2015"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("26 Aug 2012"), "Dawn - Leaves asteroid Vesta, heads for asteroid 1 Ceres", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("1 Sep 2012"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("1 Feb 2015"), "Dawn - Goes into orbit around asteroid 1 Ceres", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("14 Jul 2015"), "New Horizons - NASA mission reaches Pluto and Charon", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("1 Mar 2013"), "LADEE - Launch of NASA Orbiter to the Moon", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("1 Nov 2014"), "Philae - ESA Rosetta Lander touches down on Comet Churyumov-Gerasimenko", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("1 Nov 2013"), "MAVEN - Launch of Mars Orbiter", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("1 May 2014"), "Rosetta - ESA mission reaches Comet Churyumov-Gerasimenko", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("1 Jan 2014"), "Mars Sample Return Mission - Launch of NASA sample return mission to Mars", "", "", "", "", 0)
+	// s.AddItem("@nasa", parseKnownTime("5 Apr 2231"), "Pluto - is passed by Neptune in distance from the Sun for the next 20 years", "", "", "", "", 0)
 
-	applog.Infof("Adding profile for @visitlondon")
-	err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "", "", "", "", "", "")
-	if err != nil {
-		applog.Errorf("Could not add profile for @visitlondon: %s", err.Error())
-	}
+	// applog.Infof("Adding profile for @visitlondon")
+	// err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "", "", "", "", "", "")
+	// if err != nil {
+	// 	applog.Errorf("Could not add profile for @visitlondon: %s", err.Error())
+	// }
 
-	applog.Infof("Adding feed profile for londonsportsguide")
-	err = s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon", "", "", "", "", "", "event")
-	if err != nil {
-		applog.Errorf("Could not add profile for londonsportsguide: %s", err.Error())
-	}
+	// applog.Infof("Adding feed profile for londonsportsguide")
+	// err = s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon", "", "", "", "", "", "event")
+	// if err != nil {
+	// 	applog.Errorf("Could not add profile for londonsportsguide: %s", err.Error())
+	// }
 
-	applog.Infof("Adding feed profile for londonartsguide")
-	err = s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon", "", "", "", "", "", "event")
-	if err != nil {
-		applog.Errorf("Could not add profile for londonartsguide: %s", err.Error())
-	}
+	// applog.Infof("Adding feed profile for londonartsguide")
+	// err = s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon", "", "", "", "", "", "event")
+	// if err != nil {
+	// 	applog.Errorf("Could not add profile for londonartsguide: %s", err.Error())
+	// }
 
-	applog.Infof("Adding feed profile for londondanceguide")
-	err = s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon", "", "", "", "", "", "event")
-	if err != nil {
-		applog.Errorf("Could not add profile for londondanceguide: %s", err.Error())
-	}
+	// applog.Infof("Adding feed profile for londondanceguide")
+	// err = s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon", "", "", "", "", "", "event")
+	// if err != nil {
+	// 	applog.Errorf("Could not add profile for londondanceguide: %s", err.Error())
+	// }
 
-	applog.Infof("Adding feed profile for o2shepherdsbushempire")
-	err = s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", "http://www.o2shepherdsbushempire.co.uk/RSS", "", "", "", "", "", "", "event")
-	if err != nil {
-		applog.Errorf("Could not add profile for o2shepherdsbushempire: %s", err.Error())
-	}
+	// applog.Infof("Adding feed profile for o2shepherdsbushempire")
+	// err = s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", "http://www.o2shepherdsbushempire.co.uk/RSS", "", "", "", "", "", "", "event")
+	// if err != nil {
+	// 	applog.Errorf("Could not add profile for o2shepherdsbushempire: %s", err.Error())
+	// }
 
 	applog.Infof("Adding follows for @iand")
-	s.Follow("@iand", "londonsportsguide")
-	s.Follow("@iand", "londonartsguide")
-	s.Follow("@iand", "londondanceguide")
-	s.Follow("@iand", "o2shepherdsbushempire")
-	s.Follow("@iand", "@nasa")
+	// s.Follow("@iand", "londonsportsguide")
+	// s.Follow("@iand", "londonartsguide")
+	// s.Follow("@iand", "londondanceguide")
+	// s.Follow("@iand", "o2shepherdsbushempire")
+	// s.Follow("@iand", "@nasa")
 	s.Follow("@iand", "@daveg")
 
 	applog.Infof("Adding follows for @daveg")
