@@ -730,12 +730,20 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	etsParsed, err := time.Parse(time.RFC3339, event)
+	etsParsed := time.Unix(0, 0)
+
+	eventNum, err := strconv.ParseInt(event, 10, 64)
 	if err != nil {
-		etsParsed, err = time.Parse("2006-01-02", event)
+		etsParsed, err = time.Parse(time.RFC3339, event)
 		if err != nil {
-			etsParsed = time.Unix(0, 0)
+			etsParsed, err = time.Parse("2006-01-02", event)
+			if err != nil {
+				etsParsed = time.Unix(0, 0)
+			}
 		}
+
+	} else {
+		etsParsed = time.Unix(eventNum, 0)
 	}
 
 	itemid, err := s.AddItem(pid, etsParsed, text, link, image, "", media, int(duration))
