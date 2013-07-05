@@ -706,9 +706,14 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 	text := r.FormValue("text")
 	link := r.FormValue("link")
 	ets := r.FormValue("ets")
+	event := r.FormValue("event")
 	image := r.FormValue("image")
 	media := r.FormValue("media")
 	durationStr := r.FormValue("duration")
+
+	if event == "" {
+		event = ets
+	}
 
 	var duration int64
 	var err error
@@ -720,14 +725,14 @@ func addHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	applog.Debugf("Adding item pid: %s, text: %s, link: %s, ets: %v, image: %s, media: %s", pid, text, link, ets, image, media)
+	applog.Debugf("Adding item pid: %s, text: %s, link: %s, event: %v, image: %s, media: %s", pid, text, link, event, image, media)
 
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	etsParsed, err := time.Parse(time.RFC3339, ets)
+	etsParsed, err := time.Parse(time.RFC3339, event)
 	if err != nil {
-		etsParsed, err = time.Parse("2006-01-02", ets)
+		etsParsed, err = time.Parse("2006-01-02", event)
 		if err != nil {
 			etsParsed = time.Unix(0, 0)
 		}
