@@ -558,6 +558,12 @@ func followHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	followpid := datastore.PidType(r.FormValue("followpid"))
+
+	if followpid == pid {
+		ErrorResponse(w, r, fmt.Errorf("Cannot follow self"))
+		return
+	}
+
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
