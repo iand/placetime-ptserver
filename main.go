@@ -567,7 +567,11 @@ func followHandler(w http.ResponseWriter, r *http.Request) {
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	s.Follow(pid, followpid)
+	err := s.Follow(pid, followpid)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
 	fmt.Fprint(w, "ACK")
 }
 
@@ -587,7 +591,11 @@ func unfollowHandler(w http.ResponseWriter, r *http.Request) {
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	s.Unfollow(pid, followpid)
+	err := s.Unfollow(pid, followpid)
+	if err != nil {
+		ErrorResponse(w, r, err)
+		return
+	}
 	fmt.Fprint(w, "ACK")
 }
 
