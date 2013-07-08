@@ -3,23 +3,18 @@ package main
 import (
 	"cgl.tideland.biz/applog"
 	"code.google.com/p/gorilla/mux"
-	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/iand/imgpick"
-	"github.com/iand/salience"
 	"github.com/kurrik/oauth1a"
 	"github.com/kurrik/twittergo"
 	"github.com/nranchev/go-libGeoIP"
 	"github.com/placetime/datastore"
 	"github.com/rcrowley/goagain"
 	"html/template"
-	"image/png"
-	"io"
 	"io/ioutil"
 	mr "math/rand"
 	"net"
@@ -1522,83 +1517,16 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 	url := r.FormValue("url")
 	best := r.FormValue("best")
 
-	println(url)
+	selectBest := false
+	if best == "1" {
+		selectBest = true
+	}
 
-	mediaUrl, title, imageUrls, err := imgpick.FindMedia(url)
-
+	data, err := DetectUrl(url, selectBest)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
 	}
-
-	type DetectionResult struct {
-		Title      string              `json:"title"`
-		Url        string              `json:"url"`
-		Images     []string            `json:"images,omitempty"`
-		Alternates []imgpick.ImageInfo `json:"alternates,omitempty"`
-		Media      string              `json:"media"`
-		BestImage  string              `json:"bestImage"`
-	}
-
-	var data DetectionResult
-
-	var bestImageFilename string
-
-	if best == "1" {
-		best, images, err := imgpick.SelectBestImage(url, imageUrls)
-
-		if best.Img == nil || err != nil {
-			ErrorResponse(w, r, err)
-			return
-		}
-
-		imgOut := salience.Crop(best.Img, 460, 160)
-
-		hasher := md5.New()
-		io.WriteString(hasher, url)
-		id := fmt.Sprintf("%x", hasher.Sum(nil))
-
-		bestImageFilename = fmt.Sprintf("%s.png", id)
-
-		foutName := path.Join(config.Image.Path, bestImageFilename)
-
-		fout, err := os.OpenFile(foutName, os.O_CREATE|os.O_WRONLY, 0666)
-		if err != nil {
-			ErrorResponse(w, r, err)
-			return
-		}
-
-		if err = png.Encode(fout, imgOut); err != nil {
-			ErrorResponse(w, r, err)
-			return
-		}
-
-		filteredImages := make([]imgpick.ImageInfo, 0)
-		for _, i := range images {
-			if i.Url != best.Url {
-				filteredImages = append(filteredImages, i)
-			}
-		}
-
-		data = DetectionResult{
-			Title:      title,
-			Url:        url,
-			Alternates: filteredImages,
-			Media:      mediaUrl,
-			BestImage:  bestImageFilename,
-		}
-
-	} else {
-
-		data = DetectionResult{
-			Title:     title,
-			Url:       url,
-			Images:    imageUrls,
-			Media:     mediaUrl,
-			BestImage: bestImageFilename,
-		}
-	}
-
 	json, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		ErrorResponse(w, r, err)
