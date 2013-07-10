@@ -9,6 +9,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/iand/imgpick"
 	"github.com/kurrik/oauth1a"
 	"github.com/kurrik/twittergo"
 	"github.com/nranchev/go-libGeoIP"
@@ -200,7 +201,7 @@ func Configure() {
 	readConfig()
 	checkEnvironment()
 
-	datastore.InitRedisStore(config.Datastore)
+	datastore.InitRedisStore(config.Datastore, config.Image.Path)
 
 	var err error
 	cityDb, err = libgeo.Load(config.Geo.CityDb)
@@ -209,7 +210,7 @@ func Configure() {
 		os.Exit(1)
 	}
 	applog.Infof("Assets directory: %s", config.Web.Path)
-	applog.Infof("Image directory: %s", config.Image.Path)
+	applog.Infof("Image directory: %s")
 	applog.Infof("City database: %s", config.Geo.CityDb)
 
 }
@@ -614,20 +615,20 @@ func initData() {
 	defer s.Close()
 
 	applog.Infof("Adding profile for @iand")
-	err := s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "", "nospam@iandavis.com", "", "", "", "", "")
+	err := s.AddProfile("@iand", "sunshine", "Ian", "Timefloes.", "", "", "", "nospam@iandavis.com", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for @iand: %s", err.Error())
 	}
 	s.AddSuggestedProfile("@iand", "london")
 
 	applog.Infof("Adding profile for @daveg")
-	err = s.AddProfile("@daveg", "sunshine", "Dave", "", "", "", "", "", "", "", "", "")
+	err = s.AddProfile("@daveg", "sunshine", "Dave", "", "", "", "", "", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for @daveg: %s", err.Error())
 	}
 
 	applog.Infof("Adding profile for @nasa")
-	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "", "", "", "", "", "")
+	s.AddProfile("@nasa", "nasa", "Nasa Missions", "Upcoming NASA mission information.", "", "", "", "", "", "", "", "", "")
 
 	applog.Infof("Adding items for nasa")
 	s.AddItem("@nasa", parseKnownTime("1 Jan 2015"), "BepiColombo - Launch of ESA and ISAS Orbiter and Lander Missions to Mercury", "", "", "", "", 0)
@@ -643,31 +644,31 @@ func initData() {
 	s.AddItem("@nasa", parseKnownTime("5 Apr 2231"), "Pluto - is passed by Neptune in distance from the Sun for the next 20 years", "", "", "", "", 0)
 
 	applog.Infof("Adding profile for @visitlondon")
-	err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "", "", "", "", "", "")
+	err = s.AddProfile("@visitlondon", "sunshine", "visitlondon.com", "", "", "", "", "", "", "", "", "", "")
 	if err != nil {
 		applog.Errorf("Could not add profile for @visitlondon: %s", err.Error())
 	}
 
 	applog.Infof("Adding feed profile for londonsportsguide")
-	err = s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon", "", "", "", "", "", "event")
+	err = s.AddProfile("londonsportsguide", "sunshine", "Football in London - visitlondon.com", "", datastore.FeedTypeRss, "http://feeds.visitlondon.com/LondonSportsGuide", "@visitlondon", "", "", "", "", "", "event")
 	if err != nil {
 		applog.Errorf("Could not add profile for londonsportsguide: %s", err.Error())
 	}
 
 	applog.Infof("Adding feed profile for londonartsguide")
-	err = s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon", "", "", "", "", "", "event")
+	err = s.AddProfile("londonartsguide", "sunshine", "London Arts Guide - visitlondon.com", "", datastore.FeedTypeRss, "http://feeds.visitlondon.com/LondonArtsGuide", "@visitlondon", "", "", "", "", "", "event")
 	if err != nil {
 		applog.Errorf("Could not add profile for londonartsguide: %s", err.Error())
 	}
 
 	applog.Infof("Adding feed profile for londondanceguide")
-	err = s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon", "", "", "", "", "", "event")
+	err = s.AddProfile("londondanceguide", "sunshine", "London Dance Guide - visitlondon.com", "", datastore.FeedTypeRss, "http://feeds.visitlondon.com/LondonDanceGuide", "@visitlondon", "", "", "", "", "", "event")
 	if err != nil {
 		applog.Errorf("Could not add profile for londondanceguide: %s", err.Error())
 	}
 
 	applog.Infof("Adding feed profile for o2shepherdsbushempire")
-	err = s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", "http://www.o2shepherdsbushempire.co.uk/RSS", "", "", "", "", "", "", "event")
+	err = s.AddProfile("o2shepherdsbushempire", "sunshine", "O2 Shepherd's Bush Empire | Concert Dates and Tickets", "", datastore.FeedTypeRss, "http://www.o2shepherdsbushempire.co.uk/RSS", "", "", "", "", "", "", "event")
 	if err != nil {
 		applog.Errorf("Could not add profile for o2shepherdsbushempire: %s", err.Error())
 	}
@@ -1011,6 +1012,7 @@ func addProfileHandler(w http.ResponseWriter, r *http.Request) {
 	pid := datastore.PidType(r.FormValue("pid"))
 	pwd := r.FormValue("pwd")
 	name := r.FormValue("pname")
+	feedtype := r.FormValue("feedtype")
 	feedurl := r.FormValue("feedurl")
 	bio := r.FormValue("bio")
 	parentpid := datastore.PidType(r.FormValue("parentpid"))
@@ -1027,10 +1029,14 @@ func addProfileHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if feedtype == "" && feedurl != "" {
+		feedtype = datastore.FeedTypeRss
+	}
+
 	s := datastore.NewRedisStore()
 	defer s.Close()
 
-	err = s.AddProfile(pid, pwd, name, bio, feedurl, parentpid, email, "", "", "", "", itemType)
+	err = s.AddProfile(pid, pwd, name, bio, feedtype, feedurl, parentpid, email, "", "", "", "", itemType)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
@@ -1214,7 +1220,7 @@ func soauthHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = s.AddProfile(pid, pwd, twitterUserData.Name, twitterUserData.Description, "", "", "", twitterUserData.Location, twitterUserData.Url, twitterUserData.ProfileImageUrl, twitterUserData.ProfileImageUrlHttps, "")
+		err = s.AddProfile(pid, pwd, twitterUserData.Name, twitterUserData.Description, "", "", "", "", twitterUserData.Location, twitterUserData.Url, twitterUserData.ProfileImageUrl, twitterUserData.ProfileImageUrlHttps, "")
 		if err != nil {
 			ErrorResponse(w, r, err)
 			return
@@ -1534,7 +1540,7 @@ func jsonDetectHandler(w http.ResponseWriter, r *http.Request) {
 		selectBest = true
 	}
 
-	data, err := DetectUrl(url, selectBest)
+	data, err := imgpick.DetectMedia(url, selectBest)
 	if err != nil {
 		ErrorResponse(w, r, err)
 		return
