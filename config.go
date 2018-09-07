@@ -94,15 +94,15 @@ var (
 			Lifetime: 600,
 			Timeout:  15000,
 			Eventful: EventfulConfig{
-				AppKey: "h6xD8gZFzDK5m498",
+				AppKey: "xxx",
 				Pid:    "eventful",
 			},
 			Songkick: SongkickConfig{
-				AppKey: "KVAGcEtQWTuMJJUX",
+				AppKey: "xxx",
 			},
 			Lastfm: LastfmConfig{
-				APIKey: "e8bc090bb831d109fcee1b1450e87bd3",
-				Secret: "646a5a3b50d83ee8d43a4085ec5cc9e7",
+				APIKey: "xxx",
+				Secret: "xxx",
 			},
 			Youtube: YoutubeConfig{
 				Pid: "youtube",
@@ -112,8 +112,8 @@ var (
 			},
 		},
 		Twitter: TwitterConfig{
-			OAuthConsumerKey:    "Fnky4HZ8z4NsOxRniTvCA",
-			OAuthConsumerSecret: "iv9q7CTYfrls05eFlhyEkPpHcJqseSWpbDx8GIyGvg",
+			OAuthConsumerKey:    "xxx",
+			OAuthConsumerSecret: "xxx",
 		},
 		Geo: GeoConfig{
 			CityDb: "./data/GeoLiteCity.dat",
